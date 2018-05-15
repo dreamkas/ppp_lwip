@@ -1109,7 +1109,7 @@
  * LWIP_NETBUF_RECVINFO==1: append destination addr and port to every netbuf.
  */
 #if !defined LWIP_NETBUF_RECVINFO || defined __DOXYGEN__
-#define LWIP_NETBUF_RECVINFO            0
+#define LWIP_NETBUF_RECVINFO            1
 #endif
 /**
  * @}
@@ -1885,7 +1885,7 @@
  * LWIP_STATS_DISPLAY==1: Compile in the statistics output functions.
  */
 #if !defined LWIP_STATS_DISPLAY || defined __DOXYGEN__
-#define LWIP_STATS_DISPLAY              0
+#define LWIP_STATS_DISPLAY              1
 #endif
 
 /**

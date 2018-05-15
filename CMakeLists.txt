@@ -8,6 +8,7 @@ include_directories(serial/include/)
 include_directories(serial/include/serial)
 include_directories(serial/include/serial/impl)
 include_directories(lwip/include/)
+include_directories(lwip_nat)
 include_directories(pcap/Include)
 
 #link_directories(${CMAKE_SOURCE_DIR}/pcap/Lib)
@@ -26,7 +27,8 @@ set(SOURCES main.cc
         sio.c
         pcapif.c
         pcapif_helper.c
-        lwip_main.c)
+        lwip_main.c
+        lwip_nat/ipv4_nat.c)
 list(APPEND SOURCES ${LWIPNOAPPSFILES})
 list(APPEND SOURCES ${MDNSFILES})
 add_executable(ppp_lwip ${SOURCES})

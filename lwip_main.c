@@ -31,6 +31,11 @@
 #include "lwip/etharp.h"
 #include "netif/ethernet.h"
 
+
+#if LWIP_USING_NAT
+#include "lwip_nat/ipv4_nat.h"
+#endif
+
 /* applications includes */
 #include "lwip/apps/lwiperf.h"
 #include "lwip/apps/netbiosns.h"
@@ -140,6 +145,10 @@ struct netif slipif1;
 struct netif slipif2;
 #endif /* USE_SLIPIF > 1 */
 #endif /* USE_SLIPIF */
+
+#if LWIP_USING_NAT
+ip_nat_entry_t nat_entry;
+#endif
 
 
 #if USE_PPP
@@ -256,7 +265,23 @@ static void status_callback(struct netif *state_netif)
     {
 #if LWIP_IPV4
         printf("status_callback==UP, local interface IP is %s\n", ip4addr_ntoa(netif_ip4_addr(state_netif)));
+///
+
+#if LWIP_USING_NAT
+        printf("\n\n\n!!!NAT!!!\n\n\n");
+
+        nat_entry.out_if = (struct netif *)&netif;
+        nat_entry.in_if = (struct netif *)&ppp_netif;
+        IP4_ADDR(&nat_entry.source_net, 192, 168, 137, 4);
+        IP4_ADDR(&nat_entry.source_netmask, 255, 255, 255, 0);
+        IP4_ADDR(&nat_entry.dest_net, 192, 168, 242, 0);
+        IP4_ADDR(&nat_entry.dest_netmask, 255, 255, 254, 0);
+        ip_nat_add(&nat_entry);
+#endif
+
+///
 #else
+
         printf("status_callback==UP\n");
 #endif
 #if LWIP_MDNS_RESPONDER
@@ -266,6 +291,11 @@ static void status_callback(struct netif *state_netif)
     else
     {
         printf("status_callback==DOWN\n");
+
+#if LWIP_USING_NAT
+        ip_nat_remove(&nat_entry);
+#endif
+
     }
 }
 
@@ -342,11 +372,11 @@ static void msvc_netif_init(void)
         ip4_addr_t addr;
 
         /* Set our address */
-        IP4_ADDR(&addr, 192, 168, 242, 182);
+        IP4_ADDR(&addr, 192, 168, 137, 5);
         ppp_set_ipcp_ouraddr(ppp, &addr);
 
         /* Set peer(his) address */
-        IP4_ADDR(&addr, 192, 168, 242, 181);
+        IP4_ADDR(&addr, 192, 168, 137, 6);
         ppp_set_ipcp_hisaddr(ppp, &addr);
 
         /* Set primary DNS server */
@@ -738,13 +768,16 @@ void main_loop(void)
 #endif /* !PCAPIF_RX_USE_THREAD */
 //#else /* USE_ETHERNET */
         /* try to read characters from serial line and pass them to PPPoS */
-    count = sio_read(ppp_sio, (u8_t*)rxbuf, 1024);
-    if(count > 0) {
-      pppos_input(ppp, rxbuf, count);
-    } else {
-      /* nothing received, give other tasks a chance to run */
-      sys_msleep(1);
-    }
+        count = sio_read(ppp_sio, (u8_t *) rxbuf, 1024);
+        if (count > 0)
+        {
+            pppos_input(ppp, rxbuf, count);
+        }
+        else
+        {
+            /* nothing received, give other tasks a chance to run */
+            sys_msleep(1);
+        }
 
 #endif /* USE_ETHERNET */
 

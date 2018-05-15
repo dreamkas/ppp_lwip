@@ -65,6 +65,14 @@
 #define LWIP_NETIF_LINK_CALLBACK   1
 #define LWIP_NETIF_STATUS_CALLBACK 1
 
+#define LWIP_USING_NAT             1
+
+#ifdef LWIP_USING_NAT
+#define IP_NAT                     1
+#else
+#define IP_NAT                     0
+#endif
+
 
 #define LWIP_DEBUG 1
 #ifdef LWIP_DEBUG
@@ -203,7 +211,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* ---------- ARP options ---------- */
 #define LWIP_ARP                1
-#define ARP_TABLE_SIZE          10
+#define ARP_TABLE_SIZE          20
 #define ARP_QUEUEING            1
 
 
@@ -219,7 +227,6 @@ a lot of data that needs to be copied, this should be set high. */
 #define IP_REASS_MAX_PBUFS      10
 #define MEMP_NUM_REASSDATA      10
 #define IP_FRAG                 1
-
 
 /* ---------- ICMP options ---------- */
 #define ICMP_TTL                255
