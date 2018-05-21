@@ -284,7 +284,7 @@
  * To use this, MEMP_USE_CUSTOM_POOLS also has to be enabled.
  */
 #if !defined MEM_USE_POOLS || defined __DOXYGEN__
-#define MEM_USE_POOLS                   0
+#define MEM_USE_POOLS                   1
 #endif
 
 /**
@@ -292,7 +292,7 @@
  * bigger pool - WARNING: THIS MIGHT WASTE MEMORY but it can make a system more
  * reliable. */
 #if !defined MEM_USE_POOLS_TRY_BIGGER_POOL || defined __DOXYGEN__
-#define MEM_USE_POOLS_TRY_BIGGER_POOL   0
+#define MEM_USE_POOLS_TRY_BIGGER_POOL   1
 #endif
 
 /**
@@ -302,7 +302,7 @@
  * include path somewhere.
  */
 #if !defined MEMP_USE_CUSTOM_POOLS || defined __DOXYGEN__
-#define MEMP_USE_CUSTOM_POOLS           0
+#define MEMP_USE_CUSTOM_POOLS           1
 #endif
 
 /**
@@ -2029,7 +2029,7 @@
 #define IP6_FRAG_STATS                  0
 #define MLD6_STATS                      0
 #define ND6_STATS                       0
-#define MIB2_STATS                      0
+//#define MIB2_STATS                      0
 
 #endif /* LWIP_STATS */
 /**
@@ -2130,7 +2130,7 @@
  * application buffers to pbufs.
  */
 #if !defined LWIP_CHECKSUM_ON_COPY || defined __DOXYGEN__
-#define LWIP_CHECKSUM_ON_COPY           0
+#define LWIP_CHECKSUM_ON_COPY           1
 #endif
 /**
  * @}

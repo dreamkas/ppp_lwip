@@ -74,7 +74,7 @@
 #endif
 
 
-#define LWIP_DEBUG 1
+//#define LWIP_DEBUG 0
 #ifdef LWIP_DEBUG
 
 #define LWIP_DBG_MIN_LEVEL         0
@@ -124,13 +124,13 @@ a lot of data that needs to be copied, this should be set high. */
 /* MEMP_NUM_PBUF: the number of memp struct pbufs. If the application
    sends a lot of data out of ROM (or other static memory), this
    should be set high. */
-#define MEMP_NUM_PBUF           16
+#define MEMP_NUM_PBUF           16 * 2
 /* MEMP_NUM_RAW_PCB: the number of UDP protocol control blocks. One
    per active RAW "connection". */
-#define MEMP_NUM_RAW_PCB        3
+#define MEMP_NUM_RAW_PCB        3 * 2
 /* MEMP_NUM_UDP_PCB: the number of UDP protocol control blocks. One
    per active UDP "connection". */
-#define MEMP_NUM_UDP_PCB        4
+#define MEMP_NUM_UDP_PCB        4 * 2
 /* MEMP_NUM_TCP_PCB: the number of simulatenously active TCP
    connections. */
 #define MEMP_NUM_TCP_PCB        5
@@ -139,27 +139,27 @@ a lot of data that needs to be copied, this should be set high. */
 #define MEMP_NUM_TCP_PCB_LISTEN 8
 /* MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP
    segments. */
-#define MEMP_NUM_TCP_SEG        16
+#define MEMP_NUM_TCP_SEG        16 * 2 * 10
 /* MEMP_NUM_SYS_TIMEOUT: the number of simulateously active
    timeouts. */
-#define MEMP_NUM_SYS_TIMEOUT    15
+#define MEMP_NUM_SYS_TIMEOUT    15 * 2
 
 /* The following four are used only with the sequential API and can be
    set to 0 if the application only will use the raw API. */
 /* MEMP_NUM_NETBUF: the number of struct netbufs. */
-#define MEMP_NUM_NETBUF         2
+#define MEMP_NUM_NETBUF         2 * 2
 /* MEMP_NUM_NETCONN: the number of struct netconns. */
-#define MEMP_NUM_NETCONN        10
+#define MEMP_NUM_NETCONN        10 * 2
 /* MEMP_NUM_TCPIP_MSG_*: the number of struct tcpip_msg, which is used
    for sequential API communication and incoming packets. Used in
    src/api/tcpip.c. */
-#define MEMP_NUM_TCPIP_MSG_API   16
-#define MEMP_NUM_TCPIP_MSG_INPKT 16
+#define MEMP_NUM_TCPIP_MSG_API   100 //16
+#define MEMP_NUM_TCPIP_MSG_INPKT 100 //16
 
 
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
-#define PBUF_POOL_SIZE          160
+#define PBUF_POOL_SIZE          160 * 2
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
 #define PBUF_POOL_BUFSIZE       128
@@ -188,11 +188,11 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCP_MSS                 1024
 
 /* TCP sender buffer space (bytes). */
-#define TCP_SND_BUF             2048
+#define TCP_SND_BUF             8096 //2048
 
 /* TCP sender buffer space (pbufs). This must be at least = 2 *
    TCP_SND_BUF/TCP_MSS for things to work. */
-#define TCP_SND_QUEUELEN       (4 * TCP_SND_BUF/TCP_MSS)
+#define TCP_SND_QUEUELEN       (16 * TCP_SND_BUF/TCP_MSS) //(4 * TCP_SND_BUF/TCP_MSS)
 
 /* TCP writable space (bytes). This must be less than or equal
    to TCP_SND_BUF. It is the amount of space which must be
@@ -253,26 +253,26 @@ a lot of data that needs to be copied, this should be set high. */
 
 
 /* ---------- RAW options ---------- */
-#define LWIP_RAW                1
+#define LWIP_RAW                0
 
 
 /* ---------- Statistics options ---------- */
 
 #define LWIP_STATS              1
-#define LWIP_STATS_DISPLAY      1
+#define LWIP_STATS_DISPLAY      0
 
 #if LWIP_STATS
-#define LINK_STATS              1
-#define IP_STATS                1
-#define ICMP_STATS              1
-#define IGMP_STATS              1
-#define IPFRAG_STATS            1
-#define UDP_STATS               1
-#define TCP_STATS               1
-#define MEM_STATS               1
-#define MEMP_STATS              1
-#define PBUF_STATS              1
-#define SYS_STATS               1
+#define IP_STATS                0
+#define LINK_STATS              0
+#define ICMP_STATS              0
+#define IGMP_STATS              0
+#define IPFRAG_STATS            0
+#define UDP_STATS               0
+#define TCP_STATS               0
+#define MEM_STATS               0
+#define MEMP_STATS              0
+#define PBUF_STATS              0
+#define SYS_STATS               0
 #endif /* LWIP_STATS */
 
 

@@ -160,6 +160,7 @@ struct netif *ip4_route(const ip4_addr_t *dest)
         return ip4_default_multicast_netif;
     }
 #endif /* LWIP_MULTICAST_TX_OPTIONS */
+    static size_t num = 0;
     ip4_addr_t piritAddr1 = {0};
     ip4_addr_t piritAddr2 = {0};
     ip4_addr_t piritAddr3 = {0};
@@ -171,7 +172,7 @@ struct netif *ip4_route(const ip4_addr_t *dest)
     if (ip4_addr_cmp(&piritAddr1, dest) || ip4_addr_cmp(&piritAddr2, dest) || ip4_addr_cmp(&piritAddr3, dest) ||
         ip4_addr_cmp(&piritAddr4, dest))
     {
-        printf("PACKET TO PIRIT!!!");
+        printf("PACKET TO PIRIT #%d!!!\n", num++);
     }
 
     /* iterate through netifs */
@@ -462,7 +463,18 @@ err_t ip4_input(struct pbuf *p, struct netif *inp)
     IP_STATS_INC(ip.recv);
     MIB2_STATS_INC(mib2.ipinreceives);
 
-//    stats_display();
+
+    static int x = 0;
+
+//    if (x < 10)
+//    {
+//        x++;
+//    }
+//    else
+//    {
+//        stats_display();
+//        x = 0;
+//    }
 
 
     /* identify the IP header */

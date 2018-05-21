@@ -143,7 +143,7 @@
 
 
 #ifdef __DOXYGEN__
-#define LWIP_DEBUG
+//#define LWIP_DEBUG
 //#undef LWIP_DEBUG
 #endif
 

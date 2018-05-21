@@ -10,6 +10,7 @@ include_directories(serial/include/serial/impl)
 include_directories(lwip/include/)
 include_directories(lwip_nat)
 include_directories(pcap/Include)
+include_directories(.)
 
 #link_directories(${CMAKE_SOURCE_DIR}/pcap/Lib)
 link_directories(${CMAKE_SOURCE_DIR}/pcap/Lib/x64)
