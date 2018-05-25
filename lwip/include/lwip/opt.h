@@ -1227,7 +1227,7 @@
  * this number, select returns writable (combined with TCP_SNDLOWAT).
  */
 #if !defined TCP_SNDQUEUELOWAT || defined __DOXYGEN__
-#define TCP_SNDQUEUELOWAT               LWIP_MAX(((TCP_SND_QUEUELEN)/2), 5)
+#define TCP_SNDQUEUELOWAT            5   //LWIP_MAX(((TCP_SND_QUEUELEN)/2), 5)
 #endif
 
 /**
@@ -1295,7 +1295,7 @@
  * explicit window update
  */
 #if !defined TCP_WND_UPDATE_THRESHOLD || defined __DOXYGEN__
-#define TCP_WND_UPDATE_THRESHOLD   LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
+#define TCP_WND_UPDATE_THRESHOLD   536//LWIP_MIN((TCP_WND / 4), (TCP_MSS * 4))
 #endif
 
 /**

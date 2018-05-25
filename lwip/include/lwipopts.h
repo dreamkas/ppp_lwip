@@ -185,28 +185,28 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCP_QUEUE_OOSEQ         1
 
 /* TCP Maximum segment size. */
-#define TCP_MSS                 1024
+#define TCP_MSS                 536//1024
 
 /* TCP sender buffer space (bytes). */
-#define TCP_SND_BUF             8096 //2048
+#define TCP_SND_BUF             (4 * TCP_MSS) //8096 //2048
 
 /* TCP sender buffer space (pbufs). This must be at least = 2 *
    TCP_SND_BUF/TCP_MSS for things to work. */
-#define TCP_SND_QUEUELEN       (16 * TCP_SND_BUF/TCP_MSS) //(4 * TCP_SND_BUF/TCP_MSS)
+#define TCP_SND_QUEUELEN       9 //(4 * TCP_SND_BUF/TCP_MSS) //(16 * TCP_SND_BUF/TCP_MSS) //(4 * TCP_SND_BUF/TCP_MSS)
 
 /* TCP writable space (bytes). This must be less than or equal
    to TCP_SND_BUF. It is the amount of space which must be
    available in the tcp snd_buf for select to return writable */
-#define TCP_SNDLOWAT           (TCP_SND_BUF/2)
+#define TCP_SNDLOWAT           1071 //(TCP_SND_BUF/2)
 
 /* TCP receive window. */
-#define TCP_WND                 8096
+#define TCP_WND                 (4 * TCP_MSS) //8096
 
 /* Maximum number of retransmissions of data segments. */
 #define TCP_MAXRTX              12
 
 /* Maximum number of retransmissions of SYN segments. */
-#define TCP_SYNMAXRTX           4
+#define TCP_SYNMAXRTX           3
 
 
 /* ---------- ARP options ---------- */
