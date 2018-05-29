@@ -164,7 +164,7 @@ sio_fd_t sio_open(u8_t devnum)
     } else
 #endif /* SIO_USE_COMPORT */
     {
-        fileHandle = CreateFile(fileName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+        fileHandle = CreateFileA(fileName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     }
     if (fileHandle != INVALID_HANDLE_VALUE)
     {

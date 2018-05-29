@@ -4,6 +4,20 @@ project(ppp_lwip)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
+# собрать приложение в виде службы
+# Сейчас по этому флагу только подтягиваются исходники примера службы. Код в службу не интегрирован.
+#set(build_as_service on)
+
+if (${build_as_service})
+    set(CMAKE_EXE_LINKER_FLAGS "-municode -static")
+    set(CMAKE_CXX_FLAGS "-fpermissive -Wwrite-strings")
+    add_definitions(-DUNICODE -D_UNICODE -DBUILD_AS_SERVICE)
+    include_directories(windows_service)
+else () #для установки флагов компилятора без службы
+    #set(CMAKE_CXX_FLAGS "-fpermissive")
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+endif ()
+
 include_directories(serial/include/)
 include_directories(serial/include/serial)
 include_directories(serial/include/serial/impl)
@@ -32,6 +46,15 @@ set(SOURCES main.cc
         lwip_nat/ipv4_nat.c)
 list(APPEND SOURCES ${LWIPNOAPPSFILES})
 list(APPEND SOURCES ${MDNSFILES})
+
+if (${build_as_service})
+    list(APPEND SOURCES
+            windows_service/CppWindowsService.cpp
+            windows_service/SampleService.cpp
+            windows_service/ServiceBase.cpp
+            windows_service/ServiceInstaller.cpp)
+endif ()
+
 add_executable(ppp_lwip ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME} setupapi)
