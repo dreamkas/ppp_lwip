@@ -6,15 +6,20 @@
 
 #include <windows.h>
 #include <lwip/ip6.h>
+#include <cstdio>
 
 #else
 #include <unistd.h>
 #endif
 
 #include "serial/serial.h"
+#include "lwip/include/lwip/ip4_addr.h"
+
+#define SERIAL_BAUD (115200)
 
 bool isPPPConnected;
 extern u8_t sio_idx;
+extern ip4_addr_t ourAddr, hisAddr;
 
 using std::string;
 using std::exception;
@@ -49,35 +54,13 @@ void print_usage()
     cerr << "<baudrate> [test string]" << endl;
 }
 
-int run(int argc, char **argv)
+int run(const std::string port, unsigned long baud)
 {
-    if (argc < 2)
-    {
-        print_usage();
-        return 0;
-    }
-
-    // Argument 1 is the serial port or enumerate flag
-    std::string port(argv[1]);
-
     if (port == "-e")
     {
         enumerate_ports();
         return 0;
     }
-    else if (argc < 3)
-    {
-        print_usage();
-        return 1;
-    }
-
-    // Argument 2 is the baudrate
-    unsigned long baud = 0;
-#if defined(WIN32) && !defined(__MINGW32__)
-    sscanf_s(argv[2], "%lu", &baud);
-#else
-    sscanf(argv[2], "%lu", &baud);
-#endif
 
     // port, baudrate, timeout in milliseconds
     serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000));
@@ -125,35 +108,13 @@ int run(int argc, char **argv)
     return 0;
 }
 
-int waitPPPConnect(int argc, char **argv)
+int waitPPPConnect(const std::string port, unsigned long baud)
 {
-    if (argc < 2)
-    {
-        print_usage();
-        return 0;
-    }
-
-    // Argument 1 is the serial port or enumerate flag
-    string port(argv[1]);
-
     if (port == "-e")
     {
         enumerate_ports();
         return 0;
     }
-    else if (argc < 3)
-    {
-        print_usage();
-        return 1;
-    }
-
-    // Argument 2 is the baudrate
-    unsigned long baud = 0;
-#if defined(WIN32) && !defined(__MINGW32__)
-    sscanf_s(argv[2], "%lu", &baud);
-#else
-    sscanf(argv[2], "%lu", &baud);
-#endif
 
     // port, baudrate, timeout in milliseconds
     serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(50));
@@ -174,7 +135,6 @@ int waitPPPConnect(int argc, char **argv)
     uint8_t ch = 0;
     string magicRequest = "CLIENT";
     string magicAnswer = "CLIENTSERVER";
-
 
     while (true)
     {
@@ -261,14 +221,79 @@ void initPPPServer()
 //    return 0;
 //}
 
+bool validateIpV4(const char* ip)
+{
+    unsigned int b1, b2, b3, b4;
+    unsigned char c;
+
+    if (sscanf(ip, "%3u.%3u.%3u.%3u%c", &b1, &b2, &b3, &b4, &c) != 4)
+    {
+        return false;
+    }
+
+    if (b1 > 255 || b2 > 255 || b3 > 255 || b4 > 255)
+    {
+        return false;
+    }
+
+    if (strspn(ip, "0123456789.") < strlen(ip))
+    {
+        return false;
+    }
+    return true;
+}
+
+bool validateSettings(int argc, char **argv)
+{
+    if (argc < 4)
+    {
+        return false;
+    }
+
+    if (strcmp(argv[1], "-e") && strncmp(argv[1], "COM", 3))
+    {
+        return false;
+    }
+
+    if (!validateIpV4(argv[2]) || !validateIpV4(argv[3]))
+    {
+        return false;
+    }
+
+    // два одинаковых адреса
+    if (!strcmp(argv[2], argv[3]))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 extern "C" void main_loop();
 
 
 int main(int argc, char **argv)
 {
-    waitPPPConnect(argc, argv);
+    string port;
 
-    string port(argv[1]);
+    if (validateSettings(argc, argv))
+    {
+        unsigned int b1, b2, b3, b4;
+        port = argv[1];
+        sscanf(argv[2], "%3u.%3u.%3u.%3u", &b1, &b2, &b3, &b4);
+        IP4_ADDR(&ourAddr, b1, b2, b3, b4);
+        sscanf(argv[3], "%3u.%3u.%3u.%3u", &b1, &b2, &b3, &b4);
+        IP4_ADDR(&hisAddr, b1, b2, b3, b4);
+
+    }
+    else
+    {
+        printf("Settings not valid!\nExample: COM1 192.168.1.2 192.168.1.3\n");
+        return -1;
+    }
+
+    waitPPPConnect(port, SERIAL_BAUD);
+
     size_t pos;
     if ((pos = port.find("COM", 0)) != string::npos)
     {

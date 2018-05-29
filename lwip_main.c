@@ -317,6 +317,8 @@ static void link_callback(struct netif *state_netif)
 
 #endif /* LWIP_NETIF_LINK_CALLBACK */
 
+ip4_addr_t ourAddr = {0};
+ip4_addr_t hisAddr = {0};
 /* This function initializes all network interfaces */
 static void msvc_netif_init(void)
 {
@@ -372,12 +374,10 @@ static void msvc_netif_init(void)
         ip4_addr_t addr;
 
         /* Set our address */
-        IP4_ADDR(&addr, 192, 168, 137, 5);
-        ppp_set_ipcp_ouraddr(ppp, &addr);
+        ppp_set_ipcp_ouraddr(ppp, &ourAddr);
 
         /* Set peer(his) address */
-        IP4_ADDR(&addr, 192, 168, 137, 6);
-        ppp_set_ipcp_hisaddr(ppp, &addr);
+        ppp_set_ipcp_hisaddr(ppp, &hisAddr);
 
         /* Set primary DNS server */
         IP4_ADDR(&addr, 172, 23, 32, 2);
