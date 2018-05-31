@@ -112,7 +112,7 @@
 
 /** Define this to enable debug output of this module */
 #ifndef LWIP_NAT_DEBUG
-#define LWIP_NAT_DEBUG      LWIP_DBG_ON
+#define LWIP_NAT_DEBUG      LWIP_DBG_OFF
 #endif
 
 #define LWIP_NAT_TTL_INFINITE                    (INT_MAX)

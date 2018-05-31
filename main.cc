@@ -221,8 +221,6 @@ int main(int argc, char **argv)
             continue;
         }
 
-
-
         printf("Using serial port %d for PPP\n", sio_idx);
 
         /* no stdio-buffering, please! */
