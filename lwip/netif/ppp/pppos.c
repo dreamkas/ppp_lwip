@@ -511,7 +511,7 @@ pppos_input(ppp_pcb *ppp, u8_t *s, int l)
           PPPDEBUG(LOG_INFO,
                    ("pppos_input[%d]: Dropping bad fcs 0x%"X16_F" proto=0x%"X16_F"\n",
                     ppp->netif->num, pppos->in_fcs, pppos->in_protocol));
-          /* Note: If you get lots of these, check for UART frame errors or try different baud rate */
+          /* Note: If you get lots of these, check for UART frame errors or try different serialBaudrate rate */
           LINK_STATS_INC(link.chkerr);
           pppos_input_drop(pppos);
         /* Otherwise it's a good packet so pass it on. */

@@ -107,7 +107,7 @@ void Serial::SerialImpl::reconfigurePort()
         THROW (IOException, "Error getting the serial port state.");
     }
 
-    // setup baud rate
+    // setup serialBaudrate rate
     switch (baudrate_)
     {
 #ifdef CBR_0

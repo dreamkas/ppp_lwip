@@ -33,7 +33,9 @@
 
 
 #if LWIP_USING_NAT
+
 #include "lwip_nat/ipv4_nat.h"
+
 #endif
 
 /* applications includes */
@@ -153,6 +155,11 @@ ip_nat_entry_t nat_entry;
 
 #if USE_PPP
 
+#include <stdbool.h>
+
+extern volatile bool isPPPConnected;
+volatile bool callClosePpp;
+
 static void pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
 {
     struct netif *pppif = ppp_netif(pcb);
@@ -175,6 +182,9 @@ static void pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
 #if PPP_IPV6_SUPPORT
             printf("   our6_ipaddr = %s\n", ip6addr_ntoa(netif_ip6_addr(pppif, 0)));
 #endif /* PPP_IPV6_SUPPORT */
+
+            isPPPConnected = true;
+
             break;
         }
         case PPPERR_PARAM:
@@ -220,6 +230,8 @@ static void pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
         case PPPERR_PEERDEAD:
         {        /* Connection timeout */
             printf("pppLinkStatusCallback: PPPERR_PEERDEAD\n");
+            isPPPConnected = false;
+            callClosePpp = true;
             break;
         }
         case PPPERR_IDLETIMEOUT:
@@ -270,8 +282,8 @@ static void status_callback(struct netif *state_netif)
 #if LWIP_USING_NAT
         printf("\n\n\n!!!NAT!!!\n\n\n");
 
-        nat_entry.out_if = (struct netif *)&netif;
-        nat_entry.in_if = (struct netif *)&ppp_netif;
+        nat_entry.out_if = (struct netif *) &netif;
+        nat_entry.in_if = (struct netif *) &ppp_netif;
         IP4_ADDR(&nat_entry.source_net, 192, 168, 137, 4);
         IP4_ADDR(&nat_entry.source_netmask, 255, 255, 255, 0);
         IP4_ADDR(&nat_entry.dest_net, 192, 168, 242, 0);
@@ -319,6 +331,7 @@ static void link_callback(struct netif *state_netif)
 
 ip4_addr_t ourAddr = {0};
 ip4_addr_t hisAddr = {0};
+
 /* This function initializes all network interfaces */
 static void msvc_netif_init(void)
 {
@@ -688,13 +701,9 @@ static void apps_init(void)
  * in the tcpip_thread context */
 static void test_init(void *arg)
 { /* remove compiler warning */
-#if NO_SYS
-    LWIP_UNUSED_ARG(arg);
-#else /* NO_SYS */
     sys_sem_t *init_sem;
     LWIP_ASSERT("arg != NULL", arg != NULL);
     init_sem = (sys_sem_t *) arg;
-#endif /* NO_SYS */
 
     /* init randomizer again (seed per thread) */
     srand((unsigned int) time(0));
@@ -705,34 +714,22 @@ static void test_init(void *arg)
     /* init apps */
     apps_init();
 
-#if !NO_SYS
     sys_sem_signal(init_sem);
-#endif /* !NO_SYS */
 }
 
 /* This is somewhat different to other ports: we have a main loop here:
  * a dedicated task that waits for packets to arrive. This would normally be
  * done from interrupt context with embedded hardware, but we don't get an
  * interrupt in windows for that :-) */
-void main_loop(void)
+void lwipLoop(void)
 {
-#if !NO_SYS
-    err_t err;
-    sys_sem_t init_sem;
-#endif /* NO_SYS */
-#if USE_PPP
-//#if !USE_ETHERNET
-    int count;
-    u8_t rxbuf[1024];
-//#endif
-    volatile int callClosePpp = 0;
-#endif /* USE_PPP */
+    err_t err = 0;
+    sys_sem_t init_sem = {0};
+
+    int count = 0;
+    u8_t rxbuf[1024] = {0};
 
     /* initialize lwIP stack, network interfaces and applications */
-#if NO_SYS
-    lwip_init();
-  test_init(NULL);
-#else /* NO_SYS */
     err = sys_sem_new(&init_sem, 0);
     LWIP_ASSERT("failed to create init_sem", err == ERR_OK);
     LWIP_UNUSED_ARG(err);
@@ -741,32 +738,12 @@ void main_loop(void)
      * calling update_adapter()! */
     sys_sem_wait(&init_sem);
     sys_sem_free(&init_sem);
-#endif /* NO_SYS */
-
-#if (LWIP_SOCKET || LWIP_NETCONN) && LWIP_NETCONN_SEM_PER_THREAD
-    netconn_thread_init();
-#endif
 
     /* MAIN LOOP for driver update (and timers if NO_SYS) */
-    while (!_kbhit())
+    while (true)
     {
-#if NO_SYS
-        /* handle timers (already done in tcpip.c when NO_SYS=0) */
-    sys_check_timeouts();
-#endif /* NO_SYS */
-
-#if USE_ETHERNET
-#if !PCAPIF_RX_USE_THREAD
-        /* check for packets and link status*/
-    pcapif_poll(&netif);
-    /* When pcapif_poll comes back, there are not packets, so sleep to
-       prevent 100% CPU load. Don't do this in an embedded system since it
-       increases latency! */
-    sys_msleep(1);
-#else /* !PCAPIF_RX_USE_THREAD */
         sys_msleep(50);
-#endif /* !PCAPIF_RX_USE_THREAD */
-//#else /* USE_ETHERNET */
+
         /* try to read characters from serial line and pass them to PPPoS */
         count = sio_read(ppp_sio, (u8_t *) rxbuf, 1024);
         if (count > 0)
@@ -779,148 +756,39 @@ void main_loop(void)
             sys_msleep(1);
         }
 
-#endif /* USE_ETHERNET */
-
-        ///
-//        /* try to read characters from serial line and pass them to PPPoS */
-//        count = sio_read(ppp_sio, (u8_t *) rxbuf, 1024);
-//        if (count > 0)
-//        {
-//            pppos_input(ppp, rxbuf, count);
-//        }
-//        else
-//        {
-//            /* nothing received, give other tasks a chance to run */
-//            sys_msleep(1);
-//        }
-        ///
-
-//#if USE_SLIPIF
-//        slipif_poll(&slipif1);
-//#if USE_SLIPIF > 1
-//    slipif_poll(&slipif2);
-//#endif /* USE_SLIPIF > 1 */
-//#endif /* USE_SLIPIF */
-#if ENABLE_LOOPBACK && !LWIP_NETIF_LOOPBACK_MULTITHREADING
-        /* check for loopback packets on all netifs */
-    netif_poll_all();
-#endif /* ENABLE_LOOPBACK && !LWIP_NETIF_LOOPBACK_MULTITHREADING */
-#if USE_PPP
-        {
-            int do_hup = 0;
-            if (do_hup)
-            {
-                ppp_close(ppp, 1);
-                do_hup = 0;
-            }
-        }
         if (callClosePpp && ppp)
         {
             /* make sure to disconnect PPP before stopping the program... */
-            callClosePpp = 0;
-#if NO_SYS
-            ppp_close(ppp, 0);
-#else
+            callClosePpp = false;
             pppapi_close(ppp, 0);
-#endif
+            puts("ppp closed.\n");
+
             ppp = NULL;
+
+            break;
         }
-#endif /* USE_PPP */
     }
 
-#if USE_PPP
     if (ppp)
     {
         u32_t started;
         printf("Closing PPP connection...\n");
         /* make sure to disconnect PPP before stopping the program... */
-#if NO_SYS
-        ppp_close(ppp, 0);
-#else
         pppapi_close(ppp, 0);
-#endif
         ppp = NULL;
         /* Wait for some time to let PPP finish... */
         started = sys_now();
         do
         {
-#if USE_ETHERNET && !PCAPIF_RX_USE_THREAD
-            pcapif_poll(&netif);
             sys_msleep(50);
-#else /* USE_ETHERNET && !PCAPIF_RX_USE_THREAD */
-            sys_msleep(50);
-#endif /* USE_ETHERNET && !PCAPIF_RX_USE_THREAD */
             /* @todo: need a better check here: only wait until PPP is down */
         }
         while (sys_now() - started < 5000);
     }
-#endif /* USE_PPP */
-#if (LWIP_SOCKET || LWIP_NETCONN) && LWIP_NETCONN_SEM_PER_THREAD
-    netconn_thread_cleanup();
-#endif
-#if USE_ETHERNET
     /* release the pcap library... */
-    pcapif_shutdown(&netif);
-#endif /* USE_ETHERNET */
+
+//    pcapif_shutdown(&netif);
+//    netif_remove(&netif);
+
+    puts("netif closed.\n");
 }
-
-
-void initPPPServer()
-{
-
-}
-
-//int main(int argc, char **argv)
-//{
-//
-//    waitPPPConnect(argc, argv);
-//
-//    initPPPServer();
-//
-//
-////    /* TODO: Initialise LwIP. */
-////
-////    if (!initSerial())
-////    {
-////        cout << "Cannot initialize serial port!" << endl;
-////        return -1;
-////    }
-////
-////    while (true)
-////    {
-////        /* TODO: LwIP cycle. */
-////    }
-////    try
-////    {
-////        return waitPPPConnect(argc, argv);
-////    }
-////    catch (exception &e)
-////    {
-////        cerr << "Unhandled Exception: " << e.what() << endl;
-////    }
-//
-//    return 0;
-//}
-
-//#if USE_PPP && PPPOS_SUPPORT
-//
-//int main(int argc, char **argv)
-//#else /* USE_PPP && PPPOS_SUPPORT */
-//
-//int main(void)
-//#endif /* USE_PPP && PPPOS_SUPPORT */
-//{
-//#if USE_PPP && PPPOS_SUPPORT
-//    if (argc > 1)
-//    {
-//        sio_idx = (u8_t) atoi(argv[1]);
-//    }
-//    printf("Using serial port %d for PPP\n", sio_idx);
-//#endif /* USE_PPP && PPPOS_SUPPORT */
-//    /* no stdio-buffering, please! */
-//    setvbuf(stdout, NULL, _IONBF, 0);
-//
-//    main_loop();
-//
-//    return 0;
-//}
