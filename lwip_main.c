@@ -417,6 +417,7 @@ static void msvc_netif_init(void)
 
             /* Set secondary DNS server */
 
+            IP4_ADDR(&addr, 77, 88, 8, 8);
             ppp_set_ipcp_dnsaddr(ppp, 1, &addr);
 
             /* Auth configuration, this is pretty self-explanatory */
