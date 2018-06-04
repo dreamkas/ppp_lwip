@@ -54,7 +54,7 @@ static bool waitSerialHandshake(string port);
 
 int getPcapNum(interfaces::param_t& param)
 {
-    if (interfaces::get(param) == 0)
+    if (interfaces::get(param))
     {
         pcap_if_t *alldevs, *d;
         char errbuf[PCAP_ERRBUF_SIZE + 1];
@@ -256,6 +256,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
+
+
     interfaces::param_t param;
     int num = getPcapNum(param);
 
@@ -265,7 +267,6 @@ int main(int argc, char **argv)
     }
     else
     {
-        interfaces::createRoute(param, argv[3]);
         NEW_PACKET_LIB_ADAPTER_NR = num;
         ADAPTER_ADDR = param.addr;
         ADAPTER_MASK = param.mask;

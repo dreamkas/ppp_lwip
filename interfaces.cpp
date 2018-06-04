@@ -8,32 +8,25 @@
 #include <netioapi.h>
 #include <ws2tcpip.h>
 #include <iostream>
+#include <inaddr.h>
+#include <algorithm>
 #include "interfaces.h"
 
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
+
 namespace interfaces
 {
-    int get(param_t &param, bool onlyLoopback)
+    bool get(param_t &param, bool onlyLoopback)
     {
         printf("get\n");
-        BOOL find = FALSE;
-        DWORD dwSize = 0;
+        param_t lstParam;
         DWORD dwRetVal = 0;
 
-        // Set the flags to pass to GetAdaptersAddresses
-        ULONG flags = GAA_FLAG_INCLUDE_PREFIX;
-
-        // default to unspecified address family (both)
+        ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_INCLUDE_GATEWAYS;
         ULONG family = AF_INET;
-        PIP_ADAPTER_ADDRESSES pAddresses = NULL;
         ULONG outBufLen = 0;
-
-        PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
-        PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
-        PIP_ADAPTER_GATEWAY_ADDRESS pGWaddr = NULL;
-        PIP_ADAPTER_DNS_SERVER_ADDRESS pDnsaddr = NULL;
-
+        PIP_ADAPTER_ADDRESSES pAddresses = NULL;
         dwRetVal = GetAdaptersAddresses(family, flags, NULL, pAddresses, &outBufLen);
         if (dwRetVal == ERROR_BUFFER_OVERFLOW)
         {
@@ -41,89 +34,79 @@ namespace interfaces
             if (pAddresses == NULL)
             {
                 printf("Unable to allocate memory needed to call GetInterfaceInfo\n");
-                return -1;
+                return false;
             }
         }
-        // Make a second call to GetInterfaceInfo to get
-        // the actual data we need
+        else
+        {
+            return false;
+        }
         dwRetVal = GetAdaptersAddresses(family, flags, NULL, pAddresses, &outBufLen);
         if (dwRetVal == NO_ERROR && pAddresses)
         {
-
-            for (pCurrAddresses = pAddresses; pCurrAddresses; pCurrAddresses = pCurrAddresses->Next)
+            for (PIP_ADAPTER_ADDRESSES pCurrAddresses = pAddresses; pCurrAddresses; pCurrAddresses = pCurrAddresses->Next)
             {
                 if (pCurrAddresses->OperStatus == 1 &&
-                    (pCurrAddresses->IfType == 6 || pCurrAddresses->IfType == 71 ) &&
                     pCurrAddresses->FirstUnicastAddress)
                 {
-                    pUnicast = pCurrAddresses->FirstUnicastAddress;
-                    pGWaddr = pCurrAddresses->FirstGatewayAddress;
-                    pDnsaddr = pCurrAddresses->FirstDnsServerAddress;
-                    param.name = pCurrAddresses->AdapterName;
-//                    param.addr = ((sockaddr_in*)pUnicast->Address.lpSockaddr)->sin_addr.s_addr;
+                    param_t curParam;
+                    PIP_ADAPTER_UNICAST_ADDRESS pUnicast = pCurrAddresses->FirstUnicastAddress;
+                    PIP_ADAPTER_GATEWAY_ADDRESS pGWaddr = pCurrAddresses->FirstGatewayAddress;
+                    PIP_ADAPTER_DNS_SERVER_ADDRESS pDnsaddr = pCurrAddresses->FirstDnsServerAddress;
+
+                    curParam.name = pCurrAddresses->AdapterName;
+                    curParam.dhcp = (pCurrAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0;
+
+                    curParam.addr = ((sockaddr_in *) pUnicast->Address.lpSockaddr)->sin_addr.s_addr;
+                    ConvertLengthToIpv4Mask(pUnicast->OnLinkPrefixLength, &curParam.mask);
+
+                    decToStr(curParam.addr);
                     if (pGWaddr)
                     {
-                        param.gateway = ((sockaddr_in *) pGWaddr->Address.lpSockaddr)->sin_addr.s_addr;
+                        curParam.gateway = ((sockaddr_in *) pGWaddr->Address.lpSockaddr)->sin_addr.s_addr;
                     }
                     if (pDnsaddr)
                     {
-                        param.dns = ((sockaddr_in *) pDnsaddr->Address.lpSockaddr)->sin_addr.s_addr;
+                        curParam.dns = ((sockaddr_in *) pDnsaddr->Address.lpSockaddr)->sin_addr.s_addr;
                     }
-                    ConvertLengthToIpv4Mask(pUnicast->OnLinkPrefixLength, &param.mask);
-                    param.friendlyName = pCurrAddresses->FriendlyName;
 
-                    std::wstring description = pCurrAddresses->Description;
+                    curParam.friendlyName = pCurrAddresses->FriendlyName;
+                    curParam.loopback = loopback(pCurrAddresses->Description);
+                    curParam.type = convertType(pCurrAddresses->IfType);
+                    curParam.statusYA = checkYA(curParam.addr);
 
                     if (onlyLoopback)
                     {
-                        if (description.find(L"Loopback") != std::string::npos)
+                        if (curParam.loopback)
                         {
-                            FREE(pAddresses);
-                            return 0;
-                        }
-                    } else
-                    {
-                        find = TRUE;
-                        if (description.find(L"Loopback") == std::string::npos)
-                        {
-                            if ( pCurrAddresses->IfType == 71)
-                                param.addr = 3086657728; //183.250.168.192
-                            else
-                                param.addr = 3086133440; //192.168.242.183
-                            FREE(pAddresses);
-                            return 0;
-                        }
-                        else if (param.addr == 0)
-                        {
-
-                            param.addr = 1677830336; // 192.168.1.100
+                            lstParam = curParam;
+                            break;
                         }
                     }
-                } else {
+                    else if (update(curParam, lstParam))
+                    {
+                        break;
+                    }
+                }
+                else
+                {
                     continue;
                 }
             }
-        } else
+        }
+        else
         {
-            printf("get dwRetVal\n");
-            return -1;
+            return false;
         }
 
         if (pAddresses)
         {
             FREE(pAddresses);
         }
-        if (find == TRUE)
-        {
-            return 0;
-        }
-        else
-        {
-            printf("(find == false\n");
-            return -1;
-        }
-    }
 
+        param = lstParam;
+        return param.type != NONE;
+    }
 
     typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
 
@@ -180,34 +163,113 @@ namespace interfaces
 
     void setLoopbackAddr(std::wstring name)
     {
-        std::wstring cmdParam =
-                L"/K netsh interface ip set address " + name + L" static 192.168.1.1 255.255.255.0 192.168.1.100 1";
+        std::wstring cmdParam = L"/K netsh interface ip set address " + name + L" static 192.168.1.1 255.255.255.0 192.168.1.100 1";
         ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
     }
 
-    void createRoute(param_t param, std::string addr)
+
+    void createRoute(u_long addr, u_long gw)
     {
-        printf("createRoute addr %s\n", addr.c_str());
+        std::string strAddr = decToStr(addr);
+        std::string strGW = decToStr(gw);
         {
-            std::wstring cmdParam = L"/K route delete " + std::wstring(addr.begin(), addr.end()) + L" mask 255.255.255.255 ";
+            std::wstring cmdParam = L"/K route delete " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 ";
             ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
             Sleep(5000);
         }
-        if (param.addr == 3086133440) //192.168.242.183
+
         {
-            std::wstring cmdParam = L"/K route add " + std::wstring(addr.begin(), addr.end()) + L" mask 255.255.255.255 192.168.242.183";
+            std::wstring cmdParam = L"/K route add " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 " + std::wstring(strGW.begin(), strGW.end());
             ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
         }
-        else if (param.addr == 3086657728) // 192.168.250.183)
+    }
+
+    std::string decToStr(u_long addr)
+    {
+        struct in_addr tmp;
+        tmp.S_un.S_addr = addr;
+        return std::string(inet_ntoa(tmp));
+    }
+
+    bool checkYA(u_long addr)
+    {
+        std::string cmd = "ping ya.ru -S " + decToStr(addr) + " -n 1 -i 100";
+        return system(cmd.c_str()) == 0;
+    }
+    bool ping(u_long addr)
+    {
+        std::string cmd = "ping " + decToStr(addr) + " -n 1 -i 100";
+        return system(cmd.c_str()) == 0;
+    }
+
+    bool loopback(std::wstring description)
+    {
+        return description.find(L"Loopback") != std::string::npos;
+    }
+
+    type_t convertType(DWORD type)
+    {
+        switch(type)
         {
-            printf("createRoute addr 3086657728\n");
-            std::wstring cmdParam = L"/K route add " + std::wstring(addr.begin(), addr.end()) + L" mask 255.255.255.255 192.168.250.183";
-            ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+            case IF_TYPE_ETHERNET_CSMACD:
+                return ETHERNET;
+            case IF_TYPE_IEEE80211:
+                return WIRELESS;
+            default:
+                return OTHER;
         }
-        else if (param.addr == 1677830336) // 192.168.1.100)
+    }
+
+    bool update(const param_t cur, param_t& lst)
+    {
+        if ((cur.statusYA && cur.type > lst.type) ||        // рабочий яндекс и приоритет выше
+            (cur.statusYA && !lst.statusYA) ||              // рабочий и нерабочий
+            (cur.type > lst.type && !lst.statusYA))         // нерабочий и приоритет выше
         {
-            std::wstring cmdParam = L"/K route add " + std::wstring(addr.begin(), addr.end()) + L" mask 255.255.255.255 192.168.1.100";
-            ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+            lst = cur;
+        }
+        return cur.type == ETHERNET && cur.statusYA;
+    }
+
+    void getListArpAddrs(addrVector_t& addrs)
+    {
+        unsigned long NetTableSize = 0;
+        unsigned long ipres = GetIpNetTable(NULL, &NetTableSize, 0);
+
+        if (ipres == ERROR_INSUFFICIENT_BUFFER && NetTableSize > 0)
+        {
+            PMIB_IPNETTABLE NetTable = new MIB_IPNETTABLE[NetTableSize];
+            ipres = GetIpNetTable(NetTable, &NetTableSize, 0);
+
+            if (ipres == 0 && NetTable->dwNumEntries > 0)
+            {
+                for (unsigned long i = 0; i < NetTable->dwNumEntries; i++)
+                {
+                    if (NetTable->table[i].dwType != MIB_IPNET_TYPE_INVALID)
+                    {
+                        addrs.push_back(NetTable->table[i].dwAddr);
+                    }
+
+                }
+            }
+            delete[] NetTable;
+        }
+    }
+
+    u_long getFreeAddr(param_t& param)
+    {
+        addrVector_t addrs;
+        getListArpAddrs(addrs);
+
+        u_long first_ip = ntohl(param.addr & param.mask);
+        u_long last_ip = ntohl(param.addr | ~(param.mask));
+
+        for (u_long i = last_ip - 1; i > first_ip; i++)
+        {
+            if (std::find(addrs.begin(), addrs.end(), i) == addrs.end() && !ping(i))
+            {
+                return htonl(i);
+            }
         }
     }
 }
