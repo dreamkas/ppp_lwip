@@ -7,6 +7,8 @@
 #include <windows.h>
 #include <lwip/ip6.h>
 #include <cstdio>
+#define HAVE_REMOTE
+#include <pcap.h>
 
 #else
 #include <unistd.h>
@@ -14,6 +16,7 @@
 
 #include "serial/serial.h"
 #include "lwip/include/lwip/ip4_addr.h"
+#include "interfaces.h"
 
 #define SERIAL_BAUD (115200)
 
@@ -25,6 +28,13 @@ static const char *portPrefix = "COM";
 volatile bool isPPPConnected;
 extern u32_t sio_idx;
 extern ip4_addr_t ourAddr, hisAddr;
+extern int NEW_PACKET_LIB_ADAPTER_NR;
+
+extern u_long ADAPTER_ADDR;
+extern u_long ADAPTER_MASK;
+extern u_long ADAPTER_GW;
+extern u_long ADAPTER_DNS;
+
 
 using std::string;
 using std::exception;
@@ -34,11 +44,44 @@ using std::endl;
 using std::vector;
 
 
+
 static bool validateIpV4(const char *ip);
 
 static bool setSettings(int argc, char **argv, string &port);
 
 static bool waitSerialHandshake(string port);
+
+
+int getPcapNum(interfaces::param_t& param)
+{
+    if (interfaces::get(param) == 0)
+    {
+        pcap_if_t *alldevs, *d;
+        char errbuf[PCAP_ERRBUF_SIZE + 1];
+        if (pcap_findalldevs_ex("on local host" , NULL, &alldevs, errbuf) == -1)
+        {
+            fprintf(stderr, "Error in pcap_findalldevs: %s\n", errbuf);
+            return -1;
+        }
+        int i = 0;
+        for(d = alldevs ; d ; d = d->next)	//Print the devices
+        {
+            std::string name = d->name;
+            if (name.find(param.name) != std::string::npos)
+            {
+                return i;
+            }
+            i++;
+        }
+    }
+    else
+    {
+        interfaces::createLoopback();
+        return -1;
+    }
+    return -1;
+}
+
 
 bool waitSerialHandshake(string port)
 {
@@ -213,6 +256,24 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    interfaces::param_t param;
+    int num = getPcapNum(param);
+
+    if (num < 0)
+    {
+        exit(1);
+    }
+    else
+    {
+        interfaces::createRoute(param, argv[3]);
+        NEW_PACKET_LIB_ADAPTER_NR = num;
+        ADAPTER_ADDR = param.addr;
+        ADAPTER_MASK = param.mask;
+        ADAPTER_GW = param.gateway;
+        ADAPTER_DNS = param.dns;
+    }
+
+
     while (true)
     {
         if (!waitSerialHandshake(port))
@@ -233,3 +294,4 @@ int main(int argc, char **argv)
 
     return 0;
 }
+

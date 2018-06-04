@@ -273,6 +273,14 @@ static u32_t ppp_output_cb(ppp_pcb *pcb, u8_t *data, u32_t len, void *ctx)
 
 #if LWIP_NETIF_STATUS_CALLBACK
 
+ip4_addr_t ourAddr = {0};
+ip4_addr_t hisAddr = {0};
+
+u_long ADAPTER_ADDR = 0;
+u_long ADAPTER_MASK = 0;
+u_long ADAPTER_GW = 0;
+u_long ADAPTER_DNS = 0;
+
 static void status_callback(struct netif *state_netif)
 {
     if (netif_is_up(state_netif))
@@ -286,10 +294,14 @@ static void status_callback(struct netif *state_netif)
 
         nat_entry.out_if = (struct netif *) &netif;
         nat_entry.in_if = (struct netif *) &ppp_netif;
-        IP4_ADDR(&nat_entry.source_net, 192, 168, 137, 4);
+        nat_entry.source_net = hisAddr;
+        nat_entry.dest_net.addr = ADAPTER_ADDR;
+        nat_entry.dest_netmask.addr = ADAPTER_MASK;
         IP4_ADDR(&nat_entry.source_netmask, 255, 255, 255, 0);
-        IP4_ADDR(&nat_entry.dest_net, 192, 168, 242, 0);
-        IP4_ADDR(&nat_entry.dest_netmask, 255, 255, 254, 0);
+        printf("nat_entry.source_net.addr = %u\n",  nat_entry.source_net.addr);
+        printf("nat_entry.dest_net.addr = %u\n",  nat_entry.dest_net.addr);
+        printf("nat_entry.dest_netmask.addr = %u\n", nat_entry.dest_netmask.addr);
+        printf("nat_entry.source_netmask.addr = %u\n", nat_entry.source_netmask.addr);
         ip_nat_add(&nat_entry);
 #endif
 
@@ -331,8 +343,6 @@ static void link_callback(struct netif *state_netif)
 
 #endif /* LWIP_NETIF_LINK_CALLBACK */
 
-ip4_addr_t ourAddr = {0};
-ip4_addr_t hisAddr = {0};
 
 
 /* This function initializes all network interfaces */
@@ -395,11 +405,18 @@ static void msvc_netif_init(void)
             ppp_set_ipcp_hisaddr(ppp, &hisAddr);
 
             /* Set primary DNS server */
-            IP4_ADDR(&addr, 172, 23, 32, 2);
+            if (ADAPTER_DNS)
+            {
+                addr.addr = ADAPTER_DNS;
+            }
+            else
+            {
+                IP4_ADDR(&addr, 8, 8, 8, 8);
+            }
             ppp_set_ipcp_dnsaddr(ppp, 0, &addr);
 
             /* Set secondary DNS server */
-            IP4_ADDR(&addr, 77, 88, 8, 8);
+
             ppp_set_ipcp_dnsaddr(ppp, 1, &addr);
 
             /* Auth configuration, this is pretty self-explanatory */
@@ -445,9 +462,9 @@ static void msvc_netif_init(void)
 //#elif USE_AUTOIP
 //    printf("Starting lwIP, local interface IP is autoip-enabled\n");
 //#else /* USE_DHCP */
-        LWIP_PORT_INIT_GW(&gw);
-        LWIP_PORT_INIT_IPADDR(&ipaddr);
-        LWIP_PORT_INIT_NETMASK(&netmask);
+        gw.addr = ADAPTER_GW;
+        ipaddr.addr = ADAPTER_ADDR;
+        netmask.addr = ADAPTER_MASK;
         printf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
 //#endif /* USE_DHCP */
 //#endif /* USE_ETHERNET_TCPIP */

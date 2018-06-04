@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 11)
 # собрать приложение в виде службы
 # Сейчас по этому флагу только подтягиваются исходники примера службы. Код в службу не интегрирован.
 #set(build_as_service on)
-
+add_definitions(-D_WIN32_WINNT=0x600)
 if (${build_as_service})
     set(CMAKE_EXE_LINKER_FLAGS "-municode -static")
     set(CMAKE_CXX_FLAGS "-fpermissive -Wwrite-strings")
@@ -43,7 +43,8 @@ set(SOURCES main.cc
         pcapif.c
         pcapif_helper.c
         lwip_main.c
-        lwip_nat/ipv4_nat.c)
+        lwip_nat/ipv4_nat.c
+        interfaces.cpp)
 list(APPEND SOURCES ${LWIPNOAPPSFILES})
 list(APPEND SOURCES ${MDNSFILES})
 
@@ -60,3 +61,5 @@ add_executable(ppp_lwip ${SOURCES})
 target_link_libraries(${PROJECT_NAME} setupapi)
 target_link_libraries(${PROJECT_NAME} wpcap)
 target_link_libraries(${PROJECT_NAME} packet)
+target_link_libraries(${PROJECT_NAME} iphlpapi)
+target_link_libraries(${PROJECT_NAME} Ws2_32)
