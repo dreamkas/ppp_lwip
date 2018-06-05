@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-
 namespace interfaces
 {
 
@@ -57,9 +56,18 @@ namespace interfaces
     bool checkYA(u_long addr);
     bool ping(u_long addr);
     bool update(const param_t cur, param_t& lst);
-    void createRoute(u_long addr, u_long gw);
+//    void createRoute(u_long addr, u_long gw);
 
     void getListArpAddrs(addrVector_t& addrs);
     u_long getFreeAddr(param_t& param);
 
 }
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void createRoute(u_long addr, u_long gw);
+
+#ifdef __cplusplus
+}
+#endif

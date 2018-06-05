@@ -167,23 +167,6 @@ namespace interfaces
         ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
     }
 
-
-    void createRoute(u_long addr, u_long gw)
-    {
-        std::string strAddr = decToStr(addr);
-        std::string strGW = decToStr(gw);
-        {
-            std::wstring cmdParam = L"/K route delete " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 ";
-            ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
-            Sleep(5000);
-        }
-
-        {
-            std::wstring cmdParam = L"/K route add " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 " + std::wstring(strGW.begin(), strGW.end());
-            ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
-        }
-    }
-
     std::string decToStr(u_long addr)
     {
         struct in_addr tmp;
@@ -271,5 +254,23 @@ namespace interfaces
                 return htonl(i);
             }
         }
+
+        return 0;
+    }
+}
+
+void createRoute(u_long addr, u_long gw)
+{
+    std::string strAddr = interfaces::decToStr(addr);
+    std::string strGW = interfaces::decToStr(gw);
+    {
+        std::wstring cmdParam = L"/K route delete " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 ";
+        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+        Sleep(5000);
+    }
+
+    {
+        std::wstring cmdParam = L"/K route add " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 " + std::wstring(strGW.begin(), strGW.end());
+        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
     }
 }

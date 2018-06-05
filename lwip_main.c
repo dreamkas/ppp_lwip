@@ -56,6 +56,7 @@
 #if USE_ETHERNET
 
 #include "pcapif.h"
+//#include "interfaces.h"
 
 #endif /* USE_ETHERNET */
 
@@ -94,19 +95,23 @@ ip_nat_entry_t nat_entry;
 static void initializeNAT();
 #endif
 
+//#include "interfaces.h"
+
 #if USE_PPP
 #include <stdbool.h>
 #include <lwip/autoip.h>
 #include <lwip/dhcp.h>
 #include <synchapi.h>
 
+//static bool natInitialized;
+//static bool interfaceInitialized;
+bool dhcp;
 extern volatile bool pppConnected;
 static bool callClosePpp;
 static bool lwipInitialized;
-//static bool interfaceInitialized;
-static bool dhcp = true;
-//static bool natInitialized;
 bool dhcpConfigured;
+
+void createRoute(u_long addr, u_long gw);
 
 static void pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
 {
@@ -517,6 +522,9 @@ static void initializeNAT()
         {
             return;
         }
+
+        ADAPTER_ADDR = netif.ip_addr.addr;
+        createRoute(hisAddr.addr, ADAPTER_ADDR);
 
         printf("\n\n\n!!!NAT!!!\n\n\n");
         nat_entry.out_if = (struct netif *) &netif;

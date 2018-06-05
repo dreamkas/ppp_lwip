@@ -33,7 +33,7 @@ extern u_long ADAPTER_ADDR;
 extern u_long ADAPTER_MASK;
 extern u_long ADAPTER_GW;
 extern u_long ADAPTER_DNS;
-
+extern bool dhcp;
 
 using std::string;
 using std::exception;
@@ -52,7 +52,7 @@ int getPcapNum(interfaces::param_t &param)
     {
         pcap_if_t *alldevs, *d;
         char errbuf[PCAP_ERRBUF_SIZE + 1];
-        if (pcap_findalldevs_ex((char *)"on local host", NULL, &alldevs, errbuf) == -1)
+        if (pcap_findalldevs_ex((char *) "on local host", NULL, &alldevs, errbuf) == -1)
         {
             fprintf(stderr, "Error in pcap_findalldevs: %s\n", errbuf);
             return -1;
@@ -213,7 +213,6 @@ int main(int argc, char **argv)
     }
 
 
-
     interfaces::param_t param;
     int num = getPcapNum(param);
 
@@ -224,7 +223,15 @@ int main(int argc, char **argv)
     else
     {
         NEW_PACKET_LIB_ADAPTER_NR = num;
-        ADAPTER_ADDR = param.addr;
+        dhcp = param.dhcp;
+
+        if (!dhcp)
+        {
+            ADAPTER_ADDR = interfaces::getFreeAddr(param);
+
+//            createRoute(hisAddr.addr, ADAPTER_ADDR);
+        }
+
         ADAPTER_MASK = param.mask;
         ADAPTER_GW = param.gateway;
         ADAPTER_DNS = param.dns;

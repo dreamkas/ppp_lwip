@@ -161,19 +161,19 @@ struct netif *ip4_route(const ip4_addr_t *dest)
     }
 #endif /* LWIP_MULTICAST_TX_OPTIONS */
     static size_t num = 0;
-    ip4_addr_t piritAddr1 = {0};
-    ip4_addr_t piritAddr2 = {0};
-    ip4_addr_t piritAddr3 = {0};
-    ip4_addr_t piritAddr4 = {0};
-    IP4_ADDR(&piritAddr1, 192, 168, 242, 181);
-    IP4_ADDR(&piritAddr2, 192, 168, 242, 182);
-    IP4_ADDR(&piritAddr3, 192, 168, 137, 5);
-    IP4_ADDR(&piritAddr4, 192, 168, 137, 6);
-    if (ip4_addr_cmp(&piritAddr1, dest) || ip4_addr_cmp(&piritAddr2, dest) || ip4_addr_cmp(&piritAddr3, dest) ||
-        ip4_addr_cmp(&piritAddr4, dest))
-    {
-        printf("PACKET TO PIRIT #%d!!!\n", num++);
-    }
+//    ip4_addr_t piritAddr1 = {0};
+//    ip4_addr_t piritAddr2 = {0};
+//    ip4_addr_t piritAddr3 = {0};
+//    ip4_addr_t piritAddr4 = {0};
+//    IP4_ADDR(&piritAddr1, 192, 168, 242, 181);
+//    IP4_ADDR(&piritAddr2, 192, 168, 242, 182);
+//    IP4_ADDR(&piritAddr3, 192, 168, 137, 5);
+//    IP4_ADDR(&piritAddr4, 192, 168, 137, 6);
+//    if (ip4_addr_cmp(&piritAddr1, dest) || ip4_addr_cmp(&piritAddr2, dest) || ip4_addr_cmp(&piritAddr3, dest) ||
+//        ip4_addr_cmp(&piritAddr4, dest))
+//    {
+//        printf("PACKET TO PIRIT #%d!!!\n", num++);
+//    }
 
     /* iterate through netifs */
     for (netif = netif_list; netif != NULL; netif = netif->next)
