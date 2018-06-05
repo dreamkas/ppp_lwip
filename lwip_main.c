@@ -279,7 +279,7 @@ static void link_callback(struct netif *state_netif)
 
 
 /* This function initializes all network interfaces */
-static void msvc_netif_init(void)
+static void initializeInterfaces(void)
 {
 //#if LWIP_IPV4 && USE_ETHERNET
     ip4_addr_t ipaddr, netmask, gw;
@@ -692,7 +692,7 @@ static void tcpipInitCallback(void *arg)
     srand((unsigned int) time(0));
 
 //    /* init network interfaces */
-//    msvc_netif_init();
+//    initializeInterfaces();
 
     /* init apps */
 //    apps_init();
@@ -721,7 +721,7 @@ void lwipInit()
     }
 
     /* init network interfaces */
-    msvc_netif_init();
+    initializeInterfaces();
 }
 
 /* This is somewhat different to other ports: we have a main loop here:
@@ -760,9 +760,7 @@ void lwipLoop(void)
             pppapi_close(ppp, 0);
             pppapi_free(ppp);
             puts("ppp closed.\n");
-
             ppp = NULL;
-
             break;
         }
     }
@@ -790,5 +788,4 @@ void lwipLoop(void)
 //    pcapif_shutdown(&netif);
 //    netif_remove(&netif);
 
-    puts("netif closed.\n");
 }

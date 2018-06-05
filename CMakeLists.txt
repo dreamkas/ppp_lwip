@@ -26,8 +26,8 @@ include_directories(lwip_nat)
 include_directories(pcap/Include)
 include_directories(.)
 
-#link_directories(${CMAKE_SOURCE_DIR}/pcap/Lib)
-link_directories(${CMAKE_SOURCE_DIR}/pcap/Lib/x64)
+link_directories(${CMAKE_SOURCE_DIR}/pcap/Lib)
+#link_directories(${CMAKE_SOURCE_DIR}/pcap/Lib/x64)
 
 add_definitions(-D_WIN32)
 #add_definitions(-D__DOXYGEN__)

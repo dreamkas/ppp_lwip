@@ -43,7 +43,7 @@
 #define LWIP_ICMP                  LWIP_IPV4
 
 #define LWIP_SNMP                  LWIP_UDP
-#define MIB2_STATS                 LWIP_SNMP
+#define MIB2_STATS                 0 //LWIP_SNMP
 
 #define LWIP_DNS                   LWIP_UDP
 #define LWIP_MDNS_RESPONDER        0 //LWIP_UDP
@@ -258,7 +258,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* ---------- Statistics options ---------- */
 
-#define LWIP_STATS              1
+#define LWIP_STATS              0
 #define LWIP_STATS_DISPLAY      0
 
 #if LWIP_STATS
