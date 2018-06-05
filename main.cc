@@ -25,11 +25,10 @@ static const uint32_t SERIAL_TIMEOUT = 50; /* ms */
 static const char *const MAGIC_REQUEST = "CLIENT";
 static const char *const MAGIC_ANSWER = "CLIENTSERVER";
 static const char *portPrefix = "COM";
-volatile bool isPPPConnected;
+volatile bool pppConnected;
 extern u32_t sio_idx;
 extern ip4_addr_t ourAddr, hisAddr;
 extern int NEW_PACKET_LIB_ADAPTER_NR;
-
 extern u_long ADAPTER_ADDR;
 extern u_long ADAPTER_MASK;
 extern u_long ADAPTER_GW;
@@ -43,28 +42,23 @@ using std::cerr;
 using std::endl;
 using std::vector;
 
-
-
 static bool validateIpV4(const char *ip);
-
 static bool setSettings(int argc, char **argv, string &port);
-
 static bool waitSerialHandshake(string port);
 
-
-int getPcapNum(interfaces::param_t& param)
+int getPcapNum(interfaces::param_t &param)
 {
     if (interfaces::get(param))
     {
         pcap_if_t *alldevs, *d;
         char errbuf[PCAP_ERRBUF_SIZE + 1];
-        if (pcap_findalldevs_ex("on local host" , NULL, &alldevs, errbuf) == -1)
+        if (pcap_findalldevs_ex((char *)"on local host", NULL, &alldevs, errbuf) == -1)
         {
             fprintf(stderr, "Error in pcap_findalldevs: %s\n", errbuf);
             return -1;
         }
         int i = 0;
-        for(d = alldevs ; d ; d = d->next)	//Print the devices
+        for (d = alldevs; d; d = d->next)    //Print the devices
         {
             std::string name = d->name;
             if (name.find(param.name) != std::string::npos)
@@ -81,7 +75,6 @@ int getPcapNum(interfaces::param_t& param)
     }
     return -1;
 }
-
 
 bool waitSerialHandshake(string port)
 {
@@ -106,7 +99,7 @@ bool waitSerialHandshake(string port)
             if (readBuf.find(MAGIC_REQUEST, 0) != string::npos)
             {
                 /* Requested string was found. */
-                isPPPConnected = true;
+//                pppConnected = true;
 
                 cout << MAGIC_REQUEST << " request was received. Sending " << MAGIC_ANSWER << " answer...\n";
 
@@ -125,43 +118,6 @@ bool waitSerialHandshake(string port)
     }
     return true;
 }
-
-void initPPPServer()
-{
-
-}
-
-//int main(int argc, char **argv)
-//{
-//
-//    waitSerialHandshake(argc, argv);
-//
-//    initPPPServer();
-//
-//
-////    /* TODO: Initialise LwIP. */
-////
-////    if (!initSerial())
-////    {
-////        cout << "Cannot initialize serial port!" << endl;
-////        return -1;
-////    }
-////
-////    while (true)
-////    {
-////        /* TODO: LwIP cycle. */
-////    }
-////    try
-////    {
-////        return waitPPPConnect(argc, argv);
-////    }
-////    catch (exception &e)
-////    {
-////        cerr << "Unhandled Exception: " << e.what() << endl;
-////    }
-//
-//    return 0;
-//}
 
 static bool validateIpV4(const char *ip)
 {
@@ -274,12 +230,11 @@ int main(int argc, char **argv)
         ADAPTER_DNS = param.dns;
     }
 
-
     while (true)
     {
         if (!waitSerialHandshake(port))
         {
-            Sleep(1000);
+            Sleep(500);
             continue;
         }
 
