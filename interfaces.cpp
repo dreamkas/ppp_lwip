@@ -46,8 +46,7 @@ namespace interfaces
         {
             for (PIP_ADAPTER_ADDRESSES pCurrAddresses = pAddresses; pCurrAddresses; pCurrAddresses = pCurrAddresses->Next)
             {
-                if (pCurrAddresses->OperStatus == 1 &&
-                    pCurrAddresses->FirstUnicastAddress)
+                if (pCurrAddresses->OperStatus == 1)
                 {
                     param_t curParam;
                     PIP_ADAPTER_UNICAST_ADDRESS pUnicast = pCurrAddresses->FirstUnicastAddress;
@@ -57,9 +56,11 @@ namespace interfaces
                     curParam.name = pCurrAddresses->AdapterName;
                     curParam.dhcp = (pCurrAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0;
 
-                    curParam.addr = ((sockaddr_in *) pUnicast->Address.lpSockaddr)->sin_addr.s_addr;
-                    ConvertLengthToIpv4Mask(pUnicast->OnLinkPrefixLength, &curParam.mask);
-
+                    if (pUnicast)
+                    {
+                        curParam.addr = ((sockaddr_in *) pUnicast->Address.lpSockaddr)->sin_addr.s_addr;
+                        ConvertLengthToIpv4Mask(pUnicast->OnLinkPrefixLength, &curParam.mask);
+                    }
                     decToStr(curParam.addr);
                     if (pGWaddr)
                     {
@@ -71,13 +72,13 @@ namespace interfaces
                     }
 
                     curParam.friendlyName = pCurrAddresses->FriendlyName;
-                    curParam.loopback = loopback(pCurrAddresses->Description);
                     curParam.type = convertType(pCurrAddresses->IfType);
                     curParam.statusYA = checkYA(curParam.addr);
 
                     if (onlyLoopback)
                     {
-                        if (curParam.loopback)
+                        std::wstring description(pCurrAddresses->Description);
+                        if (description.find(L"Loopback") != std::string::npos && curParam.type == ETHERNET)
                         {
                             lstParam = curParam;
                             break;
@@ -107,36 +108,17 @@ namespace interfaces
         param = lstParam;
         return param.type != NONE;
     }
-
-    typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
-
     void createLoopback()
     {
         BOOL Wow64Flag = FALSE;
-        LPFN_ISWOW64PROCESS FnIsWow64Process = (LPFN_ISWOW64PROCESS) GetProcAddress(GetModuleHandle(_T("kernel32")),
-                                                                                    "IsWow64Process");
         TCHAR CmdName[1024];
-
-        char buffer[MAX_PATH];
-        GetCurrentDirectory(MAX_PATH, buffer );
-
-        lstrcpy(CmdName, _T(buffer));
-
-        if (NULL != FnIsWow64Process && !FnIsWow64Process(GetCurrentProcess(), &Wow64Flag))
+        if (IsWow64Process(GetCurrentProcess(), &Wow64Flag) && Wow64Flag)
         {
-            Wow64Flag = FALSE;
-        }
-
-
-        if (Wow64Flag)
-        {
-            lstrcat(CmdName, _T("\\lbadpt64.exe "));
+            lstrcpy(CmdName, _T("lbadpt64.exe install"));
         } else
         {
-            lstrcat(CmdName, _T("\\lbadpt32.exe "));
+            lstrcpy(CmdName, _T("lbadpt32.exe install"));
         }
-
-        lstrcat(CmdName, _T("install"));
 
         PROCESS_INFORMATION pi;
         STARTUPINFO si;
@@ -154,7 +136,7 @@ namespace interfaces
             GetExitCodeProcess(pi.hProcess, &RetCode);
         } while (RetCode == STILL_ACTIVE);
         param_t param;
-        if (get(param, true) == 0)
+        if (get(param, true))
         {
             setLoopbackAddr(param.friendlyName);
         }
@@ -163,7 +145,7 @@ namespace interfaces
 
     void setLoopbackAddr(std::wstring name)
     {
-        std::wstring cmdParam = L"/K netsh interface ip set address " + name + L" static 192.168.1.1 255.255.255.0 192.168.1.100 1";
+        std::wstring cmdParam = L"/K netsh interface ip set address \"" + name + L"\" static 192.168.1.1 255.255.255.0 192.168.1.100 1";
         ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
     }
 
@@ -185,11 +167,6 @@ namespace interfaces
         return system(cmd.c_str()) == 0;
     }
 
-    bool loopback(std::wstring description)
-    {
-        return description.find(L"Loopback") != std::string::npos;
-    }
-
     type_t convertType(DWORD type)
     {
         switch(type)
@@ -199,7 +176,7 @@ namespace interfaces
             case IF_TYPE_IEEE80211:
                 return WIRELESS;
             default:
-                return OTHER;
+                return NONE;
         }
     }
 

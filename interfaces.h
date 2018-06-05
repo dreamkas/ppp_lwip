@@ -23,7 +23,6 @@ namespace interfaces
     {
         type_t type;        // тип (для поиска)
         bool statusYA;      // статус интернета (для поиска)
-        bool loopback;      // петля (для поиска)
         u_long addr;        // адрес интерфейса
         u_long mask;        // маска подесети интерфейса
         u_long gateway;     // шлюз по умолчанию
@@ -36,7 +35,6 @@ namespace interfaces
             addr = 0;
             type = NONE;
             statusYA = false;
-            loopback = false;
             addr = 0;
             mask = 0;
             gateway = 0;
