@@ -145,7 +145,7 @@ namespace interfaces
 
     void setLoopbackAddr(std::wstring name)
     {
-        std::wstring cmdParam = L"/K netsh interface ip set address \"" + name + L"\" static 192.168.1.1 255.255.255.0 192.168.1.100 1";
+        std::wstring cmdParam = L"/K netsh interface ip set address \"" + name + L"\" static 192.168.1.1 255.255.255.0 192.168.1.254";
         ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
     }
 
