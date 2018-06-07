@@ -562,10 +562,12 @@ pcapif_input_thread(void *arg)
 
 int NEW_PACKET_LIB_ADAPTER_NR = 0;
 
+u8_t my_mac_addr[ETH_HWADDR_LEN] = {0};
+
 static void
 pcapif_low_level_init(struct netif *netif)
 {
-  u8_t my_mac_addr[ETH_HWADDR_LEN] = LWIP_MAC_ADDR_BASE;
+//  u8_t my_mac_addr[ETH_HWADDR_LEN] = LWIP_MAC_ADDR_BASE;
   int adapter_num = NEW_PACKET_LIB_ADAPTER_NR;
   struct pcapif_private *pa;
 #ifdef PACKET_LIB_GET_ADAPTER_NETADDRESS

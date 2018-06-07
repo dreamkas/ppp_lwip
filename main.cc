@@ -16,7 +16,10 @@
 
 #include "serial/serial.h"
 #include "lwip/include/lwip/ip4_addr.h"
+#include "lwip/include/lwip/prot/ethernet.h"
 #include "interfaces.h"
+#include "settings_file.h"
+#include "mac_generator.h"
 
 #define SERIAL_BAUD (115200)
 
@@ -25,6 +28,7 @@ static const uint32_t SERIAL_TIMEOUT = 50; /* ms */
 static const char *const MAGIC_REQUEST = "CLIENT";
 static const char *const MAGIC_ANSWER = "CLIENTSERVER";
 static const char *portPrefix = "COM";
+extern u8_t my_mac_addr[ETH_HWADDR_LEN];
 volatile bool pppConnected;
 extern u32_t sio_idx;
 extern ip4_addr_t ourAddr, hisAddr;
@@ -189,6 +193,43 @@ static bool setSettings(int argc, char **argv, string &port)
     return true;
 }
 
+#define MAC_ADDR_PARAM_NAME "mac_address"
+#define MAC_ADDR_FORMAT "%02X:%02X:%02X:%02X:%02X:%02X"
+
+bool setMacFromFile()
+{
+    char mac_addr_string[100];
+
+    if (SettingsFile_Get(MAC_ADDR_PARAM_NAME, mac_addr_string))
+    {
+        cout << "Mac from file " << mac_addr_string;
+        int result = sscanf_s(mac_addr_string, MAC_ADDR_FORMAT,
+                &my_mac_addr[0], &my_mac_addr[1], &my_mac_addr[2], &my_mac_addr[3], &my_mac_addr[4], &my_mac_addr[5]);
+
+        if (result != ETH_HWADDR_LEN)
+        {
+            cout << " is invalid!" << endl;
+            return false;
+        }
+
+        cout << " is valid!" << endl;
+        return true;
+    }
+
+    return false;
+}
+
+void setNewMac()
+{
+    char mac_addr_string[20];
+
+    GenerateMacAddress(my_mac_addr);
+    snprintf(mac_addr_string, sizeof(mac_addr_string), MAC_ADDR_FORMAT,
+             my_mac_addr[0], my_mac_addr[1], my_mac_addr[2], my_mac_addr[3], my_mac_addr[4], my_mac_addr[5]);
+    cout << "Generated MAC " << mac_addr_string << endl;
+    SettingsFile_Set(MAC_ADDR_PARAM_NAME, mac_addr_string);
+}
+
 extern "C" void lwipLoop();
 
 void signalHandler(int signum)
@@ -202,6 +243,13 @@ void signalHandler(int signum)
 int main(int argc, char **argv)
 {
     string port;
+
+    SettingsFile_Init("ppp_lwip.ini");
+
+    if (!setMacFromFile())
+    {
+        setNewMac();
+    }
 
     // register signal SIGINT and signal handler
     signal(SIGINT, signalHandler);

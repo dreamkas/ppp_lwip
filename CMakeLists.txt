@@ -44,6 +44,8 @@ set(SOURCES main.cc
         pcapif_helper.c
         lwip_main.c
         lwip_nat/ipv4_nat.c
+        mac_generator.c
+        settings_file.cpp
         interfaces.cpp)
 list(APPEND SOURCES ${LWIPNOAPPSFILES})
 list(APPEND SOURCES ${MDNSFILES})
