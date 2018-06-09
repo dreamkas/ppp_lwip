@@ -769,9 +769,9 @@ pcapif_low_level_input(struct netif *netif, const void *packet, int packet_len)
 
   /* We allocate a pbuf chain of pbufs from the pool. */
   p = pbuf_alloc(PBUF_RAW, (u16_t)length + ETH_PAD_SIZE, PBUF_POOL);
-  LWIP_DEBUGF(NETIF_DEBUG, ("netif: recv length %i p->tot_len %i\n", length, (int)p->tot_len));
 
   if (p != NULL) {
+      LWIP_DEBUGF(NETIF_DEBUG, ("netif: recv length %i p->tot_len %i\n", length, (int)p->tot_len));
     /* We iterate over the pbuf chain until we have read the entire
        packet into the pbuf. */
     start = 0;

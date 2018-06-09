@@ -154,12 +154,12 @@ a lot of data that needs to be copied, this should be set high. */
    for sequential API communication and incoming packets. Used in
    src/api/tcpip.c. */
 #define MEMP_NUM_TCPIP_MSG_API   100 //16
-#define MEMP_NUM_TCPIP_MSG_INPKT 100 //16
+#define MEMP_NUM_TCPIP_MSG_INPKT 256 //16
 
 
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
-#define PBUF_POOL_SIZE          160 * 2
+#define PBUF_POOL_SIZE          1024
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
 #define PBUF_POOL_BUFSIZE       128
@@ -262,17 +262,17 @@ a lot of data that needs to be copied, this should be set high. */
 #define LWIP_STATS_DISPLAY      0
 
 #if LWIP_STATS
-#define IP_STATS                0
-#define LINK_STATS              0
-#define ICMP_STATS              0
-#define IGMP_STATS              0
-#define IPFRAG_STATS            0
-#define UDP_STATS               0
-#define TCP_STATS               0
-#define MEM_STATS               0
-#define MEMP_STATS              0
-#define PBUF_STATS              0
-#define SYS_STATS               0
+#define IP_STATS                1
+#define LINK_STATS              1
+#define ICMP_STATS              1
+#define IGMP_STATS              1
+#define IPFRAG_STATS            1
+#define UDP_STATS               1
+#define TCP_STATS               1
+#define MEM_STATS               1
+#define MEMP_STATS              1
+#define PBUF_STATS              1
+#define SYS_STATS               1
 #endif /* LWIP_STATS */
 
 
