@@ -75,19 +75,52 @@ namespace interfaces
                     curParam.type = convertType(pCurrAddresses->IfType);
                     curParam.statusYA = checkYA(curParam.addr);
 
+                    std::wstring description(pCurrAddresses->Description);
+
                     if (onlyLoopback)
                     {
-                        std::wstring description(pCurrAddresses->Description);
                         if (description.find(L"Loopback") != std::string::npos && curParam.type == ETHERNET)
                         {
                             lstParam = curParam;
                             break;
                         }
+                        else
+                        {
+                            continue;
+                        }
                     }
-                    else if (update(curParam, lstParam))
+                    else
                     {
-                        break;
+                        if (description.find(L"Loopback") != std::string::npos && curParam.type == ETHERNET)
+                        {
+                            continue;
+                        }
+                        else if (update(curParam, lstParam))
+                        {
+                            break;
+                        }
+
                     }
+
+//                    if (description.find(L"Loopback") != std::string::npos && curParam.type == ETHERNET)
+//                    {
+//                        if (onlyLoopback)
+//                        {
+//                            lstParam = curParam;
+//                            break;
+//                        }
+//                        else
+//                        {
+//                            continue;
+//                        }
+//
+//                    }
+
+//                    else if (update(curParam, lstParam))
+//                    {
+//                        break;
+//                    }
+
                 }
                 else
                 {
@@ -108,6 +141,7 @@ namespace interfaces
         param = lstParam;
         return param.type != NONE;
     }
+
     void createLoopback()
     {
         BOOL Wow64Flag = FALSE;
@@ -115,7 +149,8 @@ namespace interfaces
         if (IsWow64Process(GetCurrentProcess(), &Wow64Flag) && Wow64Flag)
         {
             lstrcpy(CmdName, _T("lbadpt64.exe install"));
-        } else
+        }
+        else
         {
             lstrcpy(CmdName, _T("lbadpt32.exe install"));
         }
@@ -126,7 +161,7 @@ namespace interfaces
         si.cb = sizeof(si);
         if (CreateProcess(NULL, CmdName, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS, NULL, NULL, &si, &pi) == 0)
         {
-            printf("createLoopback CreateProcess error\n" );
+            printf("createLoopback CreateProcess error\n");
             return;
         }
         DWORD RetCode;
@@ -134,19 +169,21 @@ namespace interfaces
         {
             Sleep(500);
             GetExitCodeProcess(pi.hProcess, &RetCode);
-        } while (RetCode == STILL_ACTIVE);
+        }
+        while (RetCode == STILL_ACTIVE);
         param_t param;
         if (get(param, true))
         {
             setLoopbackAddr(param.friendlyName);
         }
-        printf("createLoopback need restart\n" );
+        printf("createLoopback need restart\n");
     }
 
     void setLoopbackAddr(std::wstring name)
     {
-        std::wstring cmdParam = L"/K netsh interface ip set address \"" + name + L"\" static 192.168.1.1 255.255.255.0 192.168.1.254";
-        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+        std::wstring cmdParam =
+                L"/C netsh interface ip set address \"" + name + L"\" static 192.168.1.1 255.255.255.0 192.168.1.254";
+        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_HIDE);
     }
 
     std::string decToStr(u_long addr)
@@ -158,18 +195,19 @@ namespace interfaces
 
     bool checkYA(u_long addr)
     {
-        std::string cmd = "ping ya.ru -S " + decToStr(addr) + " -n 1 -i 100";
+        std::string cmd = "ping ya.ru -S " + decToStr(addr) + " -n 1 -w 2000";
         return system(cmd.c_str()) == 0;
     }
+
     bool ping(u_long addr)
     {
-        std::string cmd = "ping " + decToStr(addr) + " -n 1 -i 100";
+        std::string cmd = "ping " + decToStr(addr) + " -n 1 -w 500";
         return system(cmd.c_str()) == 0;
     }
 
     type_t convertType(DWORD type)
     {
-        switch(type)
+        switch (type)
         {
             case IF_TYPE_ETHERNET_CSMACD:
                 return ETHERNET;
@@ -180,7 +218,7 @@ namespace interfaces
         }
     }
 
-    bool update(const param_t cur, param_t& lst)
+    bool update(const param_t cur, param_t &lst)
     {
         if ((cur.statusYA && cur.type > lst.type) ||        // рабочий яндекс и приоритет выше
             (cur.statusYA && !lst.statusYA) ||              // рабочий и нерабочий
@@ -191,7 +229,7 @@ namespace interfaces
         return cur.type == ETHERNET && cur.statusYA;
     }
 
-    void getListArpAddrs(addrVector_t& addrs)
+    void getListArpAddrs(addrVector_t &addrs)
     {
         unsigned long NetTableSize = 0;
         unsigned long ipres = GetIpNetTable(NULL, &NetTableSize, 0);
@@ -216,7 +254,7 @@ namespace interfaces
         }
     }
 
-    u_long getFreeAddr(param_t& param)
+    u_long getFreeAddr(param_t &param)
     {
         addrVector_t addrs;
         getListArpAddrs(addrs);
@@ -241,13 +279,16 @@ void createRoute(u_long addr, u_long gw)
     std::string strAddr = interfaces::decToStr(addr);
     std::string strGW = interfaces::decToStr(gw);
     {
-        std::wstring cmdParam = L"/K route delete " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 ";
-        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+        std::wstring cmdParam =
+                L"/C route delete " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 ";
+        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_HIDE);
         Sleep(5000);
     }
 
     {
-        std::wstring cmdParam = L"/K route add " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 " + std::wstring(strGW.begin(), strGW.end());
-        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+        std::wstring cmdParam =
+                L"/C route add " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 " +
+                std::wstring(strGW.begin(), strGW.end());
+        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_HIDE);
     }
 }

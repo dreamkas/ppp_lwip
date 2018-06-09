@@ -71,6 +71,7 @@
 #if USE_ETHERNET
 /* THE ethernet interface */
 struct netif netif;
+struct netif ext_netif;
 #if LWIP_DHCP
 /* dhcp struct for the ethernet netif */
 struct dhcp netif_dhcp;
@@ -233,6 +234,10 @@ u_long ADAPTER_ADDR = 0;
 u_long ADAPTER_MASK = 0;
 u_long ADAPTER_GW = 0;
 u_long ADAPTER_DNS = 0;
+u_long EXT_ADAPTER_ADDR = 0;
+u_long EXT_ADAPTER_MASK = 0;
+u_long EXT_ADAPTER_GW = 0;
+u_long EXT_ADAPTER_DNS = 0;
 
 static void status_callback(struct netif *state_netif)
 {
@@ -391,7 +396,7 @@ static void initializeInterfaces(void)
         }
         else
         {
-            gw.addr = ADAPTER_GW;
+            gw.addr = EXT_ADAPTER_GW;
             ipaddr.addr = ADAPTER_ADDR;
             netmask.addr = ADAPTER_MASK;
             printf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
@@ -399,11 +404,21 @@ static void initializeInterfaces(void)
 
         netif_set_default(netif_add(&netif, NETIF_ADDRS NULL, pcapif_init, tcpip_input));
 
+        netif_add(&ext_netif, NETIF_ADDRS NULL, pcapif_init, tcpip_input);
+
 //#if LWIP_NETIF_STATUS_CALLBACK
         netif_set_status_callback(&netif, status_callback);
+
+
+        netif_set_status_callback(&ext_netif, status_callback);
+
+
 //#endif /* LWIP_NETIF_STATUS_CALLBACK */
 //#if LWIP_NETIF_LINK_CALLBACK
         netif_set_link_callback(&netif, link_callback);
+
+
+        netif_set_link_callback(&ext_netif, link_callback);
 //#endif /* LWIP_NETIF_LINK_CALLBACK */
 
 //#if USE_ETHERNET_TCPIP
@@ -412,12 +427,13 @@ static void initializeInterfaces(void)
 //#endif /* LWIP_AUTOIP */
         if (dhcp)
         {
-            dhcp_set_struct(&netif, &netif_dhcp);
+            dhcp_set_struct(&ext_netif, &netif_dhcp);
         }
         netif_set_up(&netif);
+        netif_set_up(&ext_netif);
         if (dhcp)
         {
-            err = dhcp_start(&netif);
+            err = dhcp_start(&ext_netif);
 
             printf("dhcp_start() err = %d.\n", err);
 
@@ -530,14 +546,16 @@ static void initializeNAT()
         nat_entry.out_if = (struct netif *) &netif;
         nat_entry.in_if = (struct netif *) &ppp_netif;
         nat_entry.source_net = hisAddr;
-        nat_entry.dest_net.addr = ADAPTER_ADDR;
-        nat_entry.dest_netmask.addr = ADAPTER_MASK;
+//        nat_entry.dest_net.addr = ADAPTER_ADDR;
+//        nat_entry.dest_netmask.addr = ADAPTER_MASK;
+        nat_entry.dest_net.addr = EXT_ADAPTER_ADDR;
+        nat_entry.dest_netmask.addr = EXT_ADAPTER_MASK;
         IP4_ADDR(&nat_entry.source_netmask, 255, 255, 255, 0);
-        printf("nat_entry.source_net.addr = %u\n", nat_entry.source_net.addr);
-        printf("nat_entry.dest_net.addr = %u\n", nat_entry.dest_net.addr);
-        printf("nat_entry.dest_netmask.addr = %u\n", nat_entry.dest_netmask.addr);
+        printf("nat_entry.source_net.addr = %s\n", ip4addr_ntoa(&nat_entry.source_net));
+        printf("nat_entry.dest_net.addr = %s\n", ip4addr_ntoa(&nat_entry.dest_net));
+        printf("nat_entry.dest_netmask.addr = %s\n", ip4addr_ntoa(&nat_entry.dest_netmask));
         ip_nat_add(&nat_entry);
-        printf("nat_entry.source_netmask.addr = %u\n", nat_entry.source_netmask.addr);
+        printf("nat_entry.source_netmask.addr = %s\n", ip4addr_ntoa(&nat_entry.source_netmask));
 
         natInitialized = true;
     }

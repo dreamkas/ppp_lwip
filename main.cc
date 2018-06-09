@@ -37,6 +37,11 @@ extern u_long ADAPTER_ADDR;
 extern u_long ADAPTER_MASK;
 extern u_long ADAPTER_GW;
 extern u_long ADAPTER_DNS;
+extern u_long EXT_ADAPTER_ADDR;
+extern u_long EXT_ADAPTER_MASK;
+extern u_long EXT_ADAPTER_GW;
+extern u_long EXT_ADAPTER_DNS;
+
 extern bool dhcp;
 
 using std::string;
@@ -50,13 +55,15 @@ static bool validateIpV4(const char *ip);
 static bool setSettings(int argc, char **argv, string &port);
 static bool waitSerialHandshake(string port);
 
-int getPcapNum(interfaces::param_t &param)
+int getInterfaceNum(interfaces::param_t &param, bool onlyLoopback = false);
+
+int getInterfaceNum(interfaces::param_t &param, bool onlyLoopback)
 {
-    if (interfaces::get(param))
+    if (interfaces::get(param, onlyLoopback))
     {
         pcap_if_t *alldevs, *d;
         char errbuf[PCAP_ERRBUF_SIZE + 1];
-        if (pcap_findalldevs_ex((char *) "on local host", NULL, &alldevs, errbuf) == -1)
+        if (pcap_findalldevs_ex((char *) "rpcap://", NULL, &alldevs, errbuf) == -1)
         {
             fprintf(stderr, "Error in pcap_findalldevs: %s\n", errbuf);
             return -1;
@@ -72,7 +79,7 @@ int getPcapNum(interfaces::param_t &param)
             i++;
         }
     }
-    else
+    else if (onlyLoopback)
     {
         interfaces::createLoopback();
         return -1;
@@ -94,7 +101,7 @@ bool waitSerialHandshake(string port)
         string readBuf;
         uint8_t ch = 0;
 
-        while (true) /* TODO: Добавить таймаут на поверку одного порта. */
+        while (true)
         {
             serialPort.read(&ch, 1);
 
@@ -203,8 +210,8 @@ bool setMacFromFile()
     if (SettingsFile_Get(MAC_ADDR_PARAM_NAME, mac_addr_string))
     {
         cout << "Mac from file " << mac_addr_string;
-        int result = sscanf_s(mac_addr_string, MAC_ADDR_FORMAT,
-                &my_mac_addr[0], &my_mac_addr[1], &my_mac_addr[2], &my_mac_addr[3], &my_mac_addr[4], &my_mac_addr[5]);
+        int result = sscanf_s(mac_addr_string, MAC_ADDR_FORMAT, &my_mac_addr[0], &my_mac_addr[1], &my_mac_addr[2],
+                              &my_mac_addr[3], &my_mac_addr[4], &my_mac_addr[5]);
 
         if (result != ETH_HWADDR_LEN)
         {
@@ -224,8 +231,8 @@ void setNewMac()
     char mac_addr_string[20];
 
     GenerateMacAddress(my_mac_addr);
-    snprintf(mac_addr_string, sizeof(mac_addr_string), MAC_ADDR_FORMAT,
-             my_mac_addr[0], my_mac_addr[1], my_mac_addr[2], my_mac_addr[3], my_mac_addr[4], my_mac_addr[5]);
+    snprintf(mac_addr_string, sizeof(mac_addr_string), MAC_ADDR_FORMAT, my_mac_addr[0], my_mac_addr[1], my_mac_addr[2],
+             my_mac_addr[3], my_mac_addr[4], my_mac_addr[5]);
     cout << "Generated MAC " << mac_addr_string << endl;
     SettingsFile_Set(MAC_ADDR_PARAM_NAME, mac_addr_string);
 }
@@ -261,29 +268,70 @@ int main(int argc, char **argv)
     }
 
 
-    interfaces::param_t param;
-    int num = getPcapNum(param);
+//    interfaces::param_t param;
+//    int num = getInterfaceNum(param);
+//
+//    if (num < 0)
+//    {
+//        exit(1);
+//    }
+//    else
+//    {
+//        NEW_PACKET_LIB_ADAPTER_NR = num;
+//        dhcp = param.dhcp;
+//
+//        if (!dhcp)
+//        {
+//            ADAPTER_ADDR = interfaces::getFreeAddr(param);
+//
+////            createRoute(hisAddr.addr, ADAPTER_ADDR);
+//        }
+//
+//        ADAPTER_MASK = param.mask;
+//        ADAPTER_GW = param.gateway;
+//        ADAPTER_DNS = param.dns;
+//    }
 
-    if (num < 0)
+    interfaces::param_t param;
+
+
+    int loopbackNum = getInterfaceNum(param, true);
+
+    if (loopbackNum < 0)
     {
         exit(1);
     }
     else
     {
-        NEW_PACKET_LIB_ADAPTER_NR = num;
+        NEW_PACKET_LIB_ADAPTER_NR = loopbackNum;
+        ADAPTER_ADDR = interfaces::getFreeAddr(param);
+        ADAPTER_MASK = param.mask;
+        ADAPTER_GW = param.gateway;
+        ADAPTER_DNS = param.dns;
+    }
+
+    int pcapNum = getInterfaceNum(param, false);
+
+    if (pcapNum < 0)
+    {
+        /* Work without OFD connection. */
+    }
+    else
+    {
         dhcp = param.dhcp;
 
         if (!dhcp)
         {
             ADAPTER_ADDR = interfaces::getFreeAddr(param);
-
-//            createRoute(hisAddr.addr, ADAPTER_ADDR);
         }
 
-        ADAPTER_MASK = param.mask;
-        ADAPTER_GW = param.gateway;
-        ADAPTER_DNS = param.dns;
+        NEW_PACKET_LIB_ADAPTER_NR = pcapNum;
+        EXT_ADAPTER_ADDR = interfaces::getFreeAddr(param);
+        EXT_ADAPTER_MASK = param.mask;
+        EXT_ADAPTER_GW = param.gateway;
+        EXT_ADAPTER_DNS = param.dns;
     }
+
 
     while (true)
     {

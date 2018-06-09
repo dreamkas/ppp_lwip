@@ -560,7 +560,7 @@ pcapif_input_thread(void *arg)
 /** Low-level initialization: find the correct adapter and initialize it.
  */
 
-int NEW_PACKET_LIB_ADAPTER_NR = 0;
+//int NEW_PACKET_LIB_ADAPTER_NR = 0;
 
 u8_t my_mac_addr[ETH_HWADDR_LEN] = {0};
 
@@ -917,6 +917,50 @@ pcapif_init(struct netif *netif)
 
   /* sets link up or down based on current status */
   pcapif_low_level_init(netif);
+
+  return ERR_OK;
+}
+
+/**
+ * pcapif_init(): initialization function, pass to netif_add().
+ */
+err_t
+narrowed_pcapif_init(struct netif *netif)
+{
+  static int ethernetif_index;
+
+  int local_index;
+  SYS_ARCH_DECL_PROTECT(lev);
+  SYS_ARCH_PROTECT(lev);
+  local_index = ethernetif_index++;
+  SYS_ARCH_UNPROTECT(lev);
+
+  netif->name[0] = IFNAME0;
+  netif->name[1] = (char)(IFNAME1 + local_index);
+  netif->linkoutput = pcapif_low_level_output;
+#if LWIP_IPV4
+#if LWIP_ARP
+  netif->output = etharp_output;
+#else /* LWIP_ARP */
+  netif->output = NULL; /* not used for PPPoE */
+#endif /* LWIP_ARP */
+#endif /* LWIP_IPV4 */
+#if LWIP_IPV6
+  netif->output_ip6 = ethip6_output;
+#endif /* LWIP_IPV6 */
+#if LWIP_NETIF_HOSTNAME
+  /* Initialize interface hostname */
+  netif_set_hostname(netif, "lwip");
+#endif /* LWIP_NETIF_HOSTNAME */
+
+  netif->mtu = 1500;
+  netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP;
+  netif->hwaddr_len = ETH_HWADDR_LEN;
+
+  NETIF_INIT_SNMP(netif, snmp_ifType_ethernet_csmacd, 100000000);
+
+  /* sets link up or down based on current status */
+//  pcapif_low_level_init(netif);
 
   return ERR_OK;
 }
