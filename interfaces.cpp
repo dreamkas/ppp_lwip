@@ -145,8 +145,8 @@ namespace interfaces
 
     void setLoopbackAddr(std::wstring name)
     {
-        std::wstring cmdParam = L"/K netsh interface ip set address \"" + name + L"\" static 192.168.1.1 255.255.255.0 192.168.1.254";
-        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+        std::wstring cmdParam = L"/C netsh interface ip set address \"" + name + L"\" static 192.168.1.1 255.255.255.0 192.168.1.254";
+        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_HIDE);
     }
 
     std::string decToStr(u_long addr)
@@ -158,12 +158,12 @@ namespace interfaces
 
     bool checkYA(u_long addr)
     {
-        std::string cmd = "ping ya.ru -S " + decToStr(addr) + " -n 1 -i 100";
+        std::string cmd = "ping ya.ru -S " + decToStr(addr) + " -n 1 -w 1000";
         return system(cmd.c_str()) == 0;
     }
     bool ping(u_long addr)
     {
-        std::string cmd = "ping " + decToStr(addr) + " -n 1 -i 100";
+        std::string cmd = "ping " + decToStr(addr) + " -n 1 -w 100";
         return system(cmd.c_str()) == 0;
     }
 
@@ -241,13 +241,13 @@ void createRoute(u_long addr, u_long gw)
     std::string strAddr = interfaces::decToStr(addr);
     std::string strGW = interfaces::decToStr(gw);
     {
-        std::wstring cmdParam = L"/K route delete " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 ";
-        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+        std::wstring cmdParam = L"/C route delete " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 ";
+        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_HIDE);
         Sleep(5000);
     }
 
     {
-        std::wstring cmdParam = L"/K route add " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 " + std::wstring(strGW.begin(), strGW.end());
-        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_SHOWNORMAL);
+        std::wstring cmdParam = L"/C route add " + std::wstring(strAddr.begin(), strAddr.end()) + L" mask 255.255.255.255 " + std::wstring(strGW.begin(), strGW.end());
+        ShellExecuteW(NULL, L"open", L"cmd.exe", cmdParam.c_str(), NULL, SW_HIDE);
     }
 }

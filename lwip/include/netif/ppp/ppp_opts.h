@@ -466,7 +466,7 @@
  * LCP_ECHOINTERVAL: Interval in seconds between keepalive echo requests, 0 to disable.
  */
 #ifndef LCP_ECHOINTERVAL
-#define LCP_ECHOINTERVAL                0
+#define LCP_ECHOINTERVAL                1
 #endif
 
 /**
