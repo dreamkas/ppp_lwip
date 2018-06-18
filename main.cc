@@ -230,6 +230,15 @@ void setNewMac()
     SettingsFile_Set(MAC_ADDR_PARAM_NAME, mac_addr_string);
 }
 
+#define PID_STRING "pid"
+
+void writePid()
+{
+    char tmp[10];
+    snprintf(tmp, sizeof(tmp), "%d", getpid());
+    SettingsFile_Set(PID_STRING, tmp);
+}
+
 extern "C" void lwipLoop();
 
 void signalHandler(int signum)
@@ -245,6 +254,7 @@ int main(int argc, char **argv)
     string port;
 
     SettingsFile_Init("ppp_lwip.ini");
+    writePid();
 
     if (!setMacFromFile())
     {
