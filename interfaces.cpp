@@ -54,7 +54,8 @@ namespace interfaces
                     PIP_ADAPTER_DNS_SERVER_ADDRESS pDnsaddr = pCurrAddresses->FirstDnsServerAddress;
 
                     curParam.name = pCurrAddresses->AdapterName;
-                    curParam.dhcp = (pCurrAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0;
+                    curParam.dhcp =  false;
+//                    curParam.dhcp = (pCurrAddresses->Flags & IP_ADAPTER_DHCP_ENABLED) != 0;
 
                     if (pUnicast)
                     {
@@ -74,19 +75,28 @@ namespace interfaces
                     curParam.friendlyName = pCurrAddresses->FriendlyName;
                     curParam.type = convertType(pCurrAddresses->IfType);
                     curParam.statusYA = checkYA(curParam.addr);
-
+                    std::wstring description(pCurrAddresses->Description);
+                    printf("description %ls , curParam.type %u\n",pCurrAddresses->Description, curParam.type);
                     if (onlyLoopback)
                     {
-                        std::wstring description(pCurrAddresses->Description);
+
                         if (description.find(L"Loopback") != std::string::npos && curParam.type == ETHERNET)
                         {
                             lstParam = curParam;
                             break;
                         }
                     }
-                    else if (update(curParam, lstParam))
+                    else
                     {
-                        break;
+                        if (description.find(L"Loopback") != std::string::npos && curParam.type == ETHERNET)
+                        {
+                            if (lstParam.type == NONE)  lstParam = curParam;
+                            continue;
+                        }
+                        else if (update(curParam, lstParam))
+                        {
+                            break;
+                        }
                     }
                 }
                 else
@@ -166,7 +176,7 @@ namespace interfaces
         std::string cmd = "ping " + decToStr(addr) + " -n 1 -w 100";
         return system(cmd.c_str()) == 0;
     }
-
+    const int IF_TYPE_WWANPP = 243;
     type_t convertType(DWORD type)
     {
         switch(type)
@@ -175,6 +185,8 @@ namespace interfaces
                 return ETHERNET;
             case IF_TYPE_IEEE80211:
                 return WIRELESS;
+            case IF_TYPE_WWANPP:
+                return GPS;
             default:
                 return NONE;
         }
@@ -224,9 +236,9 @@ namespace interfaces
         u_long first_ip = ntohl(param.addr & param.mask);
         u_long last_ip = ntohl(param.addr | ~(param.mask));
 
-        for (u_long i = last_ip - 1; i > first_ip; i++)
+        for (u_long i = last_ip - 1; i > first_ip; i--)
         {
-            if (std::find(addrs.begin(), addrs.end(), i) == addrs.end() && !ping(i))
+            if (std::find(addrs.begin(), addrs.end(), i) == addrs.end() && !ping(ntohl(i)))
             {
                 return htonl(i);
             }

@@ -15,7 +15,8 @@ namespace interfaces
         NONE = 0,
         WIRELESS = 1,
         ETHERNET = 2,
-        OTHER = 3,
+        GPS = 3,
+        OTHER = 4,
     }type_t;
 
 
